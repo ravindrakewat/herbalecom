@@ -1,0 +1,260 @@
+﻿import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { productService } from '../../services/productService';
+import adminService from '../../services/adminService';
+import categoryService from '../../services/categoryService';
+import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
+
+const AdminProductEdit = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const [form, setForm] = useState({
+    name: '',
+    slug: '',
+    sku: '',
+    category: '',
+    shortDescription: '',
+    description: '',
+    mrp: 0,
+    sellingPrice: 0,
+    costPrice: 0,
+    stockQuantity: 0,
+    lowStockThreshold: 5,
+    trackInventory: true,
+    thumbnail: '',
+    imageUrls: '',
+    ingredients: '',
+    benefits: '',
+    howToUse: '',
+    disclaimer: '',
+    seoTitle: '',
+    seoDescription: '',
+    isActive: true,
+    isFeatured: false,
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [catRes, prodRes] = await Promise.all([
+          categoryService.getCategories(),
+          adminService.getAdminProducts({ limit: 50 }),
+        ]);
+
+        setCategories(catRes.data || []);
+
+        const prodList = prodRes.data || [];
+        const p = prodList.find((item) => item._id === id);
+
+        if (p) {
+          setForm({
+            name: p.name || '',
+            slug: p.slug || '',
+            sku: p.sku || '',
+            category: p.category?._id || p.category || '',
+            shortDescription: p.shortDescription || '',
+            description: p.description || '',
+            mrp: p.mrp || 0,
+            sellingPrice: p.sellingPrice || 0,
+            costPrice: p.costPrice || 0,
+            stockQuantity: p.stockQuantity !== undefined ? p.stockQuantity : 0,
+            lowStockThreshold: p.lowStockThreshold || 5,
+            trackInventory: p.trackInventory !== undefined ? p.trackInventory : true,
+            thumbnail: p.thumbnail || '',
+            imageUrls: p.images ? p.images.map((img) => img.url).join('\n') : '',
+            ingredients: p.ingredients ? p.ingredients.join(', ') : '',
+            benefits: p.benefits ? p.benefits.join(', ') : '',
+            howToUse: p.howToUse || '',
+            disclaimer: p.disclaimer || '',
+            seoTitle: p.seoTitle || '',
+            seoDescription: p.seoDescription || '',
+            isActive: p.isActive !== undefined ? p.isActive : true,
+            isFeatured: p.isFeatured !== undefined ? p.isFeatured : false,
+          });
+        }
+      } catch (err) {
+        setErrorMsg('Failed to load product details.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+
+    if (Number(form.sellingPrice) > Number(form.mrp)) {
+      setErrorMsg('Selling Price cannot exceed MRP.');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const imagesPayload = form.imageUrls
+        ? form.imageUrls.split('\n').filter(Boolean).map((url) => ({ url: url.trim() }))
+        : [];
+
+      const payload = {
+        name: form.name,
+        slug: form.slug,
+        sku: form.sku,
+        category: form.category,
+        shortDescription: form.shortDescription,
+        description: form.description,
+        mrp: Number(form.mrp),
+        sellingPrice: Number(form.sellingPrice),
+        costPrice: Number(form.costPrice),
+        stockQuantity: Number(form.stockQuantity),
+        lowStockThreshold: Number(form.lowStockThreshold),
+        trackInventory: form.trackInventory,
+        thumbnail: form.thumbnail || (imagesPayload[0]?.url || ''),
+        images: imagesPayload,
+        ingredients: form.ingredients ? form.ingredients.split(',').map((s) => s.trim()) : [],
+        benefits: form.benefits ? form.benefits.split(',').map((s) => s.trim()) : [],
+        howToUse: form.howToUse,
+        disclaimer: form.disclaimer,
+        seoTitle: form.seoTitle,
+        seoDescription: form.seoDescription,
+        isActive: form.isActive,
+        isFeatured: form.isFeatured,
+      };
+
+      await productService.updateProduct(id, payload);
+      navigate('/admin/products');
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || 'Failed to update product.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return <div style={{ padding: '2rem', color: '#5c6e63' }}>Loading product details...</div>;
+  }
+
+  return (
+    <div style={{ maxWidth: '900px' }}>
+      <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <Link to="/admin/products" style={{ color: '#5c6e63', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 600 }}>
+          <ArrowLeft size={18} /> Back to Products
+        </Link>
+        <h1 style={{ fontSize: '1.8rem', color: '#1b4332', margin: 0 }}>Edit Herbal Product</h1>
+      </div>
+
+      {errorMsg && (
+        <div style={{ backgroundColor: '#fde8e8', color: '#9b1c1c', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <AlertCircle size={20} /> <span>{errorMsg}</span>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {/* Section 1: Basic Information */}
+        <div style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: '14px', border: '1px solid #e2e8e4' }}>
+          <h3 style={{ margin: '0 0 1rem', color: '#1b4332', fontSize: '1.1rem' }}>1. Basic Specification</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>Product Name *</label>
+              <input type="text" name="name" required value={form.name} onChange={handleChange} style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>Slug (URL identifier) *</label>
+              <input type="text" name="slug" required value={form.slug} onChange={handleChange} style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }} />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>SKU Code *</label>
+              <input type="text" name="sku" required value={form.sku} onChange={handleChange} style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>Category *</label>
+              <select name="category" required value={form.category} onChange={handleChange} style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce', backgroundColor: '#fff' }}>
+                <option value="">Select Category</option>
+                {categories.map((cat) => (
+                  <option key={cat._id} value={cat._id}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>Short Description</label>
+            <input type="text" name="shortDescription" value={form.shortDescription} onChange={handleChange} style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }} />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>Full Description *</label>
+            <textarea name="description" required rows={4} value={form.description} onChange={handleChange} style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }} />
+          </div>
+        </div>
+
+        {/* Section 2: Pricing & Inventory */}
+        <div style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: '14px', border: '1px solid #e2e8e4' }}>
+          <h3 style={{ margin: '0 0 1rem', color: '#1b4332', fontSize: '1.1rem' }}>2. Pricing & Inventory Control</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>MRP (₹) *</label>
+              <input type="number" name="mrp" required min="0" value={form.mrp} onChange={handleChange} style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>Selling Price (₹) *</label>
+              <input type="number" name="sellingPrice" required min="0" value={form.sellingPrice} onChange={handleChange} style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>Cost Price (₹ - Admin Private)</label>
+              <input type="number" name="costPrice" min="0" value={form.costPrice} onChange={handleChange} style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }} />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>Stock Quantity *</label>
+              <input type="number" name="stockQuantity" required min="0" value={form.stockQuantity} onChange={handleChange} style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>Low Stock Alert Threshold</label>
+              <input type="number" name="lowStockThreshold" min="0" value={form.lowStockThreshold} onChange={handleChange} style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Status Controls */}
+        <div style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: '14px', border: '1px solid #e2e8e4', display: 'flex', gap: '2rem' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 600, color: '#1b4332' }}>
+            <input type="checkbox" name="isActive" checked={form.isActive} onChange={handleChange} style={{ accentColor: '#1b4332' }} />
+            Active (Visible on Customer Store)
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 600, color: '#1b4332' }}>
+            <input type="checkbox" name="isFeatured" checked={form.isFeatured} onChange={handleChange} style={{ accentColor: '#1b4332' }} />
+            Featured Product
+          </label>
+        </div>
+
+        <button type="submit" disabled={saving} style={{ backgroundColor: '#1b4332', color: '#fff', padding: '0.85rem 1.5rem', borderRadius: '10px', border: 'none', fontSize: '1rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+          <Save size={18} /> {saving ? 'Updating Product...' : 'Update Product'}
+        </button>
+      </form>
+    </div>
+  );
+};
+
+export default AdminProductEdit;

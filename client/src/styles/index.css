@@ -281,3 +281,66 @@ button {
     display: flex !important;
   }
 }
+
+/* Hero Carousel Directional Gradient Overlay */
+.hero-gradient-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(251, 249, 245, 0.88) 0%,
+    rgba(251, 249, 245, 0.78) 24%,
+    rgba(251, 249, 245, 0.45) 45%,
+    rgba(251, 249, 245, 0.08) 62%,
+    transparent 74%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+@media (max-width: 992px) {
+  .hero-gradient-overlay {
+    background: linear-gradient(
+      to right,
+      rgba(251, 249, 245, 0.90) 0%,
+      rgba(251, 249, 245, 0.82) 32%,
+      rgba(251, 249, 245, 0.40) 58%,
+      transparent 78%
+    );
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-gradient-overlay {
+    background: linear-gradient(
+      to bottom,
+      rgba(251, 249, 245, 0.88) 0%,
+      rgba(251, 249, 245, 0.78) 45%,
+      rgba(251, 249, 245, 0.25) 75%,
+      transparent 100%
+    );
+  }
+}
+
+[data-theme='dark'] .hero-gradient-overlay {
+  background: linear-gradient(
+    to right,
+    rgba(14, 23, 19, 0.92) 0%,
+    rgba(14, 23, 19, 0.82) 24%,
+    rgba(14, 23, 19, 0.45) 45%,
+    rgba(14, 23, 19, 0.08) 62%,
+    transparent 74%
+  );
+}
+
+@media (max-width: 768px) {
+  [data-theme='dark'] .hero-gradient-overlay {
+    background: linear-gradient(
+      to bottom,
+      rgba(14, 23, 19, 0.90) 0%,
+      rgba(14, 23, 19, 0.80) 45%,
+      rgba(14, 23, 19, 0.25) 75%,
+      transparent 100%
+    );
+  }
+}

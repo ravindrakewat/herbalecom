@@ -185,15 +185,8 @@ const HeroCarousel = () => {
                 }}
               />
 
-              {/* Text-safe Gradient Overlay ensuring adequate contrast */}
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background:
-                    'linear-gradient(to right, rgba(251, 249, 245, 0.96) 0%, rgba(251, 249, 245, 0.92) 36%, rgba(251, 249, 245, 0.72) 58%, rgba(251, 249, 245, 0.15) 85%, transparent 100%)',
-                }}
-              />
+              {/* Refined Directional Gradient Overlay ensuring crisp botanical photography & sharp text */}
+              <div className="hero-gradient-overlay" />
 
               {/* Text Content Area */}
               <div
@@ -244,10 +237,11 @@ const HeroCarousel = () => {
                   <p
                     style={{
                       fontSize: 'clamp(0.95rem, 1.4vw, 1.12rem)',
-                      color: '#4f6255',
+                      color: '#2d4335',
                       marginBottom: '1.65rem',
                       lineHeight: 1.55,
                       maxWidth: '520px',
+                      fontWeight: 450,
                     }}
                   >
                     {slide.subtitle}

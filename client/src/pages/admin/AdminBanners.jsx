@@ -54,6 +54,47 @@ const AdminBanners = () => {
     setShowModal(true);
   };
 
+  const compressImageFile = (file, maxWidth = 1920, quality = 0.85) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = document.createElement('img');
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          if (width > maxWidth || height > maxWidth) {
+            if (width > height) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else {
+              width = Math.round((width * maxWidth) / height);
+              height = maxWidth;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => resolve(event.target.result);
+        img.src = event.target.result;
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleBannerFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const compressed = await compressImageFile(file);
+    if (compressed) {
+      setForm((prev) => ({ ...prev, imageUrl: compressed }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -162,14 +203,7 @@ const AdminBanners = () => {
                       type="file"
                       accept="image/*"
                       style={{ display: 'none' }}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (ev) => setForm((prev) => ({ ...prev, imageUrl: ev.target.result }));
-                          reader.readAsDataURL(file);
-                        }
-                      }}
+                      onChange={handleBannerFileUpload}
                     />
                   </label>
                 </div>

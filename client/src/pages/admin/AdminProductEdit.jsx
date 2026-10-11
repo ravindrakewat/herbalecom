@@ -97,34 +97,62 @@ const AdminProductEdit = () => {
     }));
   };
 
-  // Handle local file upload via FileReader
-  const handleFileUpload = (e, targetField) => {
+  // Compress large uploaded images in browser to keep payload lightweight and fast
+  const compressImageFile = (file, maxWidth = 1200, quality = 0.85) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = document.createElement('img');
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          if (width > maxWidth || height > maxWidth) {
+            if (width > height) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else {
+              width = Math.round((width * maxWidth) / height);
+              height = maxWidth;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => resolve(event.target.result);
+        img.src = event.target.result;
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Handle local file upload via FileReader with auto-compression
+  const handleFileUpload = async (e, targetField) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     if (targetField === 'thumbnail') {
-      const file = files[0];
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setForm((prev) => ({ ...prev, thumbnail: event.target.result }));
-      };
-      reader.readAsDataURL(file);
+      const compressedDataUrl = await compressImageFile(files[0]);
+      if (compressedDataUrl) {
+        setForm((prev) => ({ ...prev, thumbnail: compressedDataUrl }));
+      }
     } else if (targetField === 'gallery') {
-      Array.from(files).forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          setForm((prev) => {
-            const currentList = prev.imageUrls
-              ? prev.imageUrls.split('\n').filter(Boolean)
-              : [];
-            currentList.push(event.target.result);
-            return {
-              ...prev,
-              imageUrls: currentList.join('\n'),
-            };
-          });
+      const compressedUrls = await Promise.all(
+        Array.from(files).map((f) => compressImageFile(f))
+      );
+      setForm((prev) => {
+        const currentList = prev.imageUrls
+          ? prev.imageUrls.split('\n').filter(Boolean)
+          : [];
+        compressedUrls.filter(Boolean).forEach((url) => currentList.push(url));
+        return {
+          ...prev,
+          imageUrls: currentList.join('\n'),
         };
-        reader.readAsDataURL(file);
       });
     }
   };

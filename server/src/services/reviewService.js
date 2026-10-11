@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { Review, Order, Product } = require('../models');
+const { Review, Order, Product, User } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 const recalculateProductRating = async (productId) => {
@@ -33,7 +33,10 @@ const checkReviewEligibility = async (userId, productId) => {
     'items.product': productId,
   }).lean();
 
-  if (!deliveredOrder) {
+  const user = await User.findById(userId).lean();
+  const isAdmin = user && (user.role === 'admin' || user.role === 'superadmin');
+
+  if (!deliveredOrder && !isAdmin) {
     return {
       canReview: false,
       eligible: false,

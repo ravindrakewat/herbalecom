@@ -1,6 +1,7 @@
 const { createNotification } = require('../services/notificationService');
 const shipmentService = require('../services/shipmentService');
 const invoiceService = require('../services/invoiceService');
+const { recalculateProductRating } = require('../services/reviewService');
 const mongoose = require('mongoose');
 const {
   User,
@@ -515,6 +516,11 @@ const updateReviewStatus = async (req, res, next) => {
 
     const review = await Review.findByIdAndUpdate(id, { status }, { new: true });
     if (!review) throw new ApiError(404, 'Review not found');
+
+    if (review.product) {
+      await recalculateProductRating(review.product);
+    }
+
     return sendSuccess(res, 200, 'Review status updated successfully', review);
   } catch (error) {
     next(error);
@@ -524,7 +530,10 @@ const updateReviewStatus = async (req, res, next) => {
 const deleteAdminReview = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await Review.findByIdAndDelete(id);
+    const review = await Review.findByIdAndDelete(id);
+    if (review && review.product) {
+      await recalculateProductRating(review.product);
+    }
     return sendSuccess(res, 200, 'Review deleted successfully');
   } catch (error) {
     next(error);

@@ -175,9 +175,8 @@ const ProductDetails = () => {
     if (!product?._id) return;
     try {
       setReviewsLoading(true);
-      const res = await reviewService.getProductReviews(product._id, page, 10);
-      const data = res.data?.data || res.data || res;
-      const list = data.reviews || (Array.isArray(data) ? data : []);
+      const res = await reviewService.getProductReviews(product._id, { page, limit: 10 });
+      const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res?.reviews) ? res.reviews : (Array.isArray(res) ? res : []));
 
       if (page === 1) {
         setReviews(list);
@@ -185,7 +184,8 @@ const ProductDetails = () => {
         setReviews((prev) => [...prev, ...list]);
       }
 
-      setHasMoreReviews(page < (data.pagination?.totalPages || res.pagination?.pages || 1));
+      const totalPages = res?.pagination?.pages || res?.pagination?.totalPages || 1;
+      setHasMoreReviews(page < totalPages);
       setReviewPage(page);
     } catch (err) {
       console.error('Failed to fetch product reviews:', err);
@@ -1614,12 +1614,12 @@ const ProductDetails = () => {
                                   fontSize: '0.85rem',
                                 }}
                               >
-                                {(rev.user?.name || rev.userName || 'Customer').charAt(0).toUpperCase()}
+                                {(rev.name || (rev.user?.firstName ? `${rev.user.firstName} ${rev.user.lastName || ''}`.trim() : 'Customer')).charAt(0).toUpperCase()}
                               </div>
                               <div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                   <strong style={{ fontSize: '0.92rem', color: '#153222' }}>
-                                    {rev.user?.name || rev.userName || 'Verified Buyer'}
+                                    {rev.name || (rev.user?.firstName ? `${rev.user.firstName} ${rev.user.lastName || ''}`.trim() : 'Verified Buyer')}
                                   </strong>
                                   <span
                                     style={{

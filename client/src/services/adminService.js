@@ -86,9 +86,11 @@ export const updateReviewStatus = async (id, status) => {
 };
 
 export const deleteAdminReview = async (id) => {
-  const response = await api.delete(`/admin/coupons/${id}`);
+  const response = await api.delete(`/admin/reviews/${id}`);
   return response.data;
 };
+
+export const deleteReview = deleteAdminReview;
 
 export const getAdminBanners = async () => {
   const response = await api.get('/admin/banners');
@@ -198,6 +200,7 @@ export default {
   getAdminReviews,
   updateReviewStatus,
   deleteAdminReview,
+  deleteReview: deleteAdminReview,
   getAdminBanners,
   createAdminBanner,
   updateAdminBanner,

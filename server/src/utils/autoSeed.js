@@ -153,7 +153,7 @@ const seedIfEmpty = async () => {
         thumbnail: '/images/kumkumadi-oil.jpg',
         images: [
           { url: '/images/kumkumadi-oil.jpg', alt: 'Kumkumadi Radiance Facial Glow Oil Dropper Bottle', sortOrder: 0, width: 800, height: 800 },
-          { url: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?q=80&w=800', alt: 'Pure Kashmiri Saffron & Herbal Extracts', sortOrder: 1, width: 800, height: 800 }
+          { url: '/images/kumkumadi-oil-2.jpg', alt: 'Pure Kashmiri Saffron & Herbal Extracts - Botanical Macro Angle', sortOrder: 1, width: 800, height: 800 }
         ],
         isFeatured: true,
         averageRating: 4.9,

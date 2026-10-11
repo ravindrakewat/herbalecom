@@ -1,9 +1,9 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { productService } from '../../services/productService';
 import adminService from '../../services/adminService';
 import categoryService from '../../services/categoryService';
-import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle, Upload, Image, Trash2, Plus, Leaf } from 'lucide-react';
 
 const AdminProductEdit = () => {
   const { id } = useParams();
@@ -97,6 +97,52 @@ const AdminProductEdit = () => {
     }));
   };
 
+  // Handle local file upload via FileReader
+  const handleFileUpload = (e, targetField) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    if (targetField === 'thumbnail') {
+      const file = files[0];
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setForm((prev) => ({ ...prev, thumbnail: event.target.result }));
+      };
+      reader.readAsDataURL(file);
+    } else if (targetField === 'gallery') {
+      Array.from(files).forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setForm((prev) => {
+            const currentList = prev.imageUrls
+              ? prev.imageUrls.split('\n').filter(Boolean)
+              : [];
+            currentList.push(event.target.result);
+            return {
+              ...prev,
+              imageUrls: currentList.join('\n'),
+            };
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  // Remove a specific gallery image by index
+  const handleRemoveGalleryImage = (indexToRemove) => {
+    setForm((prev) => {
+      const list = prev.imageUrls.split('\n').filter(Boolean);
+      const updated = list.filter((_, idx) => idx !== indexToRemove);
+      return {
+        ...prev,
+        imageUrls: updated.join('\n'),
+      };
+    });
+  };
+
+  const galleryList = form.imageUrls ? form.imageUrls.split('\n').filter(Boolean) : [];
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -109,7 +155,11 @@ const AdminProductEdit = () => {
     try {
       setSaving(true);
       const imagesPayload = form.imageUrls
-        ? form.imageUrls.split('\n').filter(Boolean).map((url) => ({ url: url.trim() }))
+        ? form.imageUrls.split('\n').filter(Boolean).map((url, idx) => ({
+            url: url.trim(),
+            alt: `${form.name} view ${idx + 1}`,
+            sortOrder: idx,
+          }))
         : [];
 
       const payload = {
@@ -127,8 +177,8 @@ const AdminProductEdit = () => {
         trackInventory: form.trackInventory,
         thumbnail: form.thumbnail || (imagesPayload[0]?.url || ''),
         images: imagesPayload,
-        ingredients: form.ingredients ? form.ingredients.split(',').map((s) => s.trim()) : [],
-        benefits: form.benefits ? form.benefits.split(',').map((s) => s.trim()) : [],
+        ingredients: form.ingredients ? form.ingredients.split(',').map((s) => s.trim()).filter(Boolean) : [],
+        benefits: form.benefits ? form.benefits.split(',').map((s) => s.trim()).filter(Boolean) : [],
         howToUse: form.howToUse,
         disclaimer: form.disclaimer,
         seoTitle: form.seoTitle,
@@ -151,7 +201,7 @@ const AdminProductEdit = () => {
   }
 
   return (
-    <div style={{ maxWidth: '900px' }}>
+    <div style={{ maxWidth: '900px', paddingBottom: '3rem' }}>
       <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <Link to="/admin/products" style={{ color: '#5c6e63', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 600 }}>
           <ArrowLeft size={18} /> Back to Products
@@ -237,7 +287,151 @@ const AdminProductEdit = () => {
           </div>
         </div>
 
-        {/* Section 3: Status Controls */}
+        {/* Section 3: Product Images & Gallery Thumbnails */}
+        <div style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: '14px', border: '1px solid #e2e8e4' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+            <Image size={20} color="#1b4332" />
+            <h3 style={{ margin: 0, color: '#1b4332', fontSize: '1.1rem' }}>3. Product Images & Gallery Thumbnails</h3>
+          </div>
+
+          {/* Main Thumbnail */}
+          <div style={{ marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid #eef2ef' }}>
+            <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.4rem' }}>
+              Main Product Thumbnail (Used on Shop Catalog & Main View)
+            </label>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+              {form.thumbnail ? (
+                <img
+                  src={form.thumbnail}
+                  alt="Thumbnail preview"
+                  style={{ width: '84px', height: '84px', objectFit: 'cover', borderRadius: '10px', border: '1.5px solid #c8d6ce' }}
+                  onError={(e) => { e.currentTarget.src = '/images/hero-banner.jpg'; }}
+                />
+              ) : (
+                <div style={{ width: '84px', height: '84px', borderRadius: '10px', border: '1.5px dashed #c8d6ce', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8e9e94', fontSize: '0.75rem', textAlign: 'center', padding: '0.25rem' }}>
+                  No Thumbnail
+                </div>
+              )}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  name="thumbnail"
+                  value={form.thumbnail}
+                  onChange={handleChange}
+                  placeholder="Image URL (e.g. /images/kumkumadi-oil.jpg or https://...)"
+                  style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }}
+                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.9rem', backgroundColor: '#eef5f1', color: '#1b4332', borderRadius: '8px', border: '1px solid #c8d6ce', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}>
+                    <Upload size={15} /> Upload Thumbnail File
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={(e) => handleFileUpload(e, 'thumbnail')}
+                    />
+                  </label>
+                  {form.thumbnail && (
+                    <button
+                      type="button"
+                      onClick={() => setForm((prev) => ({ ...prev, thumbnail: '' }))}
+                      style={{ padding: '0.45rem 0.9rem', backgroundColor: '#fee2e2', color: '#991b1b', borderRadius: '8px', border: 'none', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Gallery Images (The Left-Side Thumbnails on Product Page) */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>
+              Product Gallery Images (Left-Side Thumbnails on Product Details Page)
+            </label>
+            <p style={{ fontSize: '0.8rem', color: '#647369', marginBottom: '0.85rem' }}>
+              These images appear as the clickable vertical thumbnails next to the main product image.
+            </p>
+
+            {/* Current Gallery Images Cards */}
+            {galleryList.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.85rem', marginBottom: '1rem' }}>
+                {galleryList.map((url, idx) => (
+                  <div key={idx} style={{ position: 'relative', width: '90px', height: '90px', borderRadius: '10px', border: '1px solid #c8d6ce', overflow: 'hidden', backgroundColor: '#f9f9f9' }}>
+                    <img
+                      src={url}
+                      alt={`Gallery thumbnail ${idx + 1}`}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => { e.currentTarget.src = '/images/hero-banner.jpg'; }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveGalleryImage(idx)}
+                      title="Remove this thumbnail"
+                      style={{ position: 'absolute', top: '4px', right: '4px', backgroundColor: 'rgba(0,0,0,0.65)', color: '#fff', border: 'none', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                    <div style={{ position: 'absolute', bottom: '2px', left: '4px', backgroundColor: 'rgba(27,67,50,0.85)', color: '#fff', fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px' }}>
+                      #{idx + 1}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Upload or Add image URLs */}
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', backgroundColor: '#1b4332', color: '#fff', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
+                <Upload size={16} /> Upload Image File from Computer
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  style={{ display: 'none' }}
+                  onChange={(e) => handleFileUpload(e, 'gallery')}
+                />
+              </label>
+              <span style={{ fontSize: '0.8rem', color: '#8e9e94' }}>or enter image URLs below (1 per line):</span>
+            </div>
+
+            <textarea
+              name="imageUrls"
+              rows={3}
+              value={form.imageUrls}
+              onChange={handleChange}
+              placeholder="/images/kumkumadi-oil.jpg&#10;/images/kumkumadi-oil-2.jpg&#10;https://..."
+              style={{ width: '100%', marginTop: '0.75rem', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce', fontSize: '0.88rem' }}
+            />
+          </div>
+        </div>
+
+        {/* Section 4: Herbal Specification */}
+        <div style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: '14px', border: '1px solid #e2e8e4' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+            <Leaf size={20} color="#1b4332" />
+            <h3 style={{ margin: 0, color: '#1b4332', fontSize: '1.1rem' }}>4. Herbal Information & Accordion Details</h3>
+          </div>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>Ingredients (comma separated)</label>
+            <input type="text" name="ingredients" value={form.ingredients} onChange={handleChange} placeholder="Saffron (Kumkuma), Sandalwood (Chandana), Manjistha, Sesame Oil" style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }} />
+          </div>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>Key Benefits (comma separated)</label>
+            <input type="text" name="benefits" value={form.benefits} onChange={handleChange} placeholder="Restores Natural Radiance, Reduces Hyperpigmentation, Deeply Hydrates" style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }} />
+          </div>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>How to Use</label>
+            <input type="text" name="howToUse" value={form.howToUse} onChange={handleChange} placeholder="Apply 3-4 drops on cleansed face and massage gently in upward circular motions." style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>Safety Disclaimer</label>
+            <input type="text" name="disclaimer" value={form.disclaimer} onChange={handleChange} placeholder="Consult a healthcare practitioner before use if pregnant or taking medication." style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }} />
+          </div>
+        </div>
+
+        {/* Section 5: Status Controls */}
         <div style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: '14px', border: '1px solid #e2e8e4', display: 'flex', gap: '2rem' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 600, color: '#1b4332' }}>
             <input type="checkbox" name="isActive" checked={form.isActive} onChange={handleChange} style={{ accentColor: '#1b4332' }} />

@@ -4,16 +4,18 @@ const { Order, Payment, Product, Cart, WebhookEvent } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { validateAndCalculateCheckout } = require('./orderService');
 const { generateOrderNumber } = require('../utils/orderNumberGenerator');
+const { redeemCoupon } = require('./couponService');
 
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_key';
-const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || 'rzp_test_mock_secret';
-const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET || 'rzp_test_webhook_secret';
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || '';
+const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || '';
+const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET || '';
 
 /**
  * Initialize Razorpay Order
  */
-const createRazorpayOrder = async (userId, addressId) => {
-  const calc = await validateAndCalculateCheckout(userId, addressId);
+const createRazorpayOrder = async (userId, addressId, couponCode = '') => {
+  const isProd = process.env.NODE_ENV === 'production';
+  const calc = await validateAndCalculateCheckout(userId, addressId, { paymentMethod: 'ONLINE', couponCode });
   const orderNumber = generateOrderNumber();
 
   // Create pending internal Order
@@ -24,6 +26,7 @@ const createRazorpayOrder = async (userId, addressId) => {
     shippingAddress: calc.addressSnapshot,
     billingAddress: calc.addressSnapshot,
     subtotal: calc.subtotal,
+    discount: calc.discount,
     shippingCharge: calc.shippingCharge,
     tax: calc.tax,
     grandTotal: calc.grandTotal,
@@ -35,10 +38,11 @@ const createRazorpayOrder = async (userId, addressId) => {
   const amountInPaise = Math.round(calc.grandTotal * 100);
   let razorpayOrderId = '';
 
-  // Use real Razorpay SDK if available, or generate compliant order ID
-  try {
-    const Razorpay = require('razorpay');
-    if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+  const hasCredentials = Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
+
+  if (hasCredentials) {
+    try {
+      const Razorpay = require('razorpay');
       const razorpay = new Razorpay({
         key_id: process.env.RAZORPAY_KEY_ID,
         key_secret: process.env.RAZORPAY_KEY_SECRET,
@@ -51,10 +55,16 @@ const createRazorpayOrder = async (userId, addressId) => {
         notes: { userId: userId.toString(), orderNumber },
       });
       razorpayOrderId = rzpOrder.id;
-    } else {
+    } catch (e) {
+      if (isProd) {
+        throw new ApiError(502, `Payment gateway communication failure: ${e.message || 'Razorpay order creation failed'}`);
+      }
       razorpayOrderId = `order_mock_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
     }
-  } catch (e) {
+  } else {
+    if (isProd) {
+      throw new ApiError(500, 'Payment gateway configuration missing: RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are required in production.');
+    }
     razorpayOrderId = `order_mock_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
   }
 
@@ -110,7 +120,7 @@ const verifyRazorpayPayment = async (userId, { razorpayOrderId, razorpayPaymentI
   let isValidSignature = false;
   const secret = process.env.RAZORPAY_KEY_SECRET || RAZORPAY_KEY_SECRET;
 
-  if (razorpaySignature) {
+  if (razorpaySignature && secret) {
     const expectedSignature = crypto
       .createHmac('sha256', secret)
       .update(`${razorpayOrderId}|${razorpayPaymentId}`)
@@ -119,8 +129,8 @@ const verifyRazorpayPayment = async (userId, { razorpayOrderId, razorpayPaymentI
     isValidSignature = expectedSignature === razorpaySignature;
   }
 
-  // Fallback for test mode mock signatures in automated tests
-  if (!isValidSignature && razorpayOrderId.startsWith('order_mock_')) {
+  // Strict Mock Bypass: Strictly forbidden in production; permitted only for test fixtures with order_mock_ or pay_mock_ prefix
+  if (!isValidSignature && process.env.NODE_ENV !== 'production' && (razorpayOrderId.startsWith('order_mock_') || razorpayPaymentId.startsWith('pay_mock_'))) {
     isValidSignature = true;
   }
 
@@ -133,10 +143,73 @@ const verifyRazorpayPayment = async (userId, { razorpayOrderId, razorpayPaymentI
     order.orderStatus = 'PAYMENT_PENDING';
     await order.save();
 
+    // Notify customer of payment failure (idempotent)
+    await createNotification({
+      user: userId,
+      title: 'Payment Failed',
+      message: `Payment for order #${order.orderNumber} could not be verified. Please try again.`,
+      type: 'PAYMENT_FAILED',
+      order: order._id,
+      orderNumber: order.orderNumber,
+      referenceId: `PAYMENT_FAILED_${order.orderNumber}_${razorpayPaymentId}`,
+    });
+
     throw new ApiError(400, 'Payment verification failed: Invalid signature.');
   }
 
-  // Update Payment record
+  // Atomic Inventory Deduction with Rollback Compensation
+  const deductedItems = [];
+  if (order.items && order.items.length > 0) {
+    for (const item of order.items) {
+      const res = await Product.updateOne(
+        { _id: item.product, stockQuantity: { $gte: item.quantity } },
+        { $inc: { stockQuantity: -item.quantity } }
+      );
+
+      if (res.modifiedCount === 0) {
+        // Rollback any items deducted in this loop
+        for (const prev of deductedItems) {
+          await Product.updateOne(
+            { _id: prev.product },
+            { $inc: { stockQuantity: prev.quantity } }
+          );
+        }
+
+        // Safe recovery state: Payment captured but inventory exhausted
+        order.paymentStatus = 'REFUND_PENDING';
+        order.orderStatus = 'OUT_OF_STOCK_PENDING_REFUND';
+        order.cancelReason = `Product "${item.name}" ran out of stock before payment confirmation.`;
+        await order.save();
+
+        payment.status = 'PAID';
+        payment.providerPaymentId = razorpayPaymentId;
+        payment.signatureVerified = true;
+        payment.refundStatus = 'PENDING';
+        payment.refundAmount = order.grandTotal;
+        payment.refundReason = `Stock depleted for ${item.name}`;
+        payment.failureReason = 'Out of stock at confirmation. Refund pending.';
+        payment.paidAt = new Date();
+        await payment.save();
+
+        // Notify customer of refund pending
+        await createNotification({
+          user: userId,
+          title: 'Order Out of Stock — Refund Pending',
+          message: `Your payment was received, but item "${item.name}" ran out of stock. A refund of ₹${order.grandTotal} is being processed.`,
+          type: 'PAYMENT_FAILED',
+          order: order._id,
+          orderNumber: order.orderNumber,
+          referenceId: `OOS_REFUND_${order.orderNumber}`,
+        });
+
+        throw new ApiError(409, `Payment was captured, but "${item.name}" is out of stock. Order marked for refund.`);
+      }
+
+      deductedItems.push(item);
+    }
+  }
+
+  // Update Payment record to confirmed PAID
   payment.status = 'PAID';
   payment.providerPaymentId = razorpayPaymentId;
   payment.providerSignature = razorpaySignature || '';
@@ -150,18 +223,35 @@ const verifyRazorpayPayment = async (userId, { razorpayOrderId, razorpayPaymentI
   order.placedAt = new Date();
   await order.save();
 
-  await createNotification({ user: userId, title: 'Payment Received', message: 'Payment received for order #' + order.orderNumber + '.', type: 'PAYMENT_SUCCESS', order: order._id, orderNumber: order.orderNumber, referenceId: 'PAYMENT_SUCCESS_' + order.orderNumber });
-  await createNotification({ user: userId, title: 'Order Confirmed', message: 'Your order #' + order.orderNumber + ' has been confirmed.', type: 'ORDER_CONFIRMED', order: order._id, orderNumber: order.orderNumber, referenceId: 'ORDER_CONFIRMED_' + order.orderNumber });
-
-  // Atomic Inventory Deduction (Idempotent per item)
-  if (order.items && order.items.length > 0) {
-    for (const item of order.items) {
-      await Product.updateOne(
-        { _id: item.product, stockQuantity: { $gte: item.quantity } },
-        { $inc: { stockQuantity: -item.quantity } }
-      );
+  // Redeem coupon if applied
+  const couponCode = order.items.find((i) => i.couponCode)?.couponCode;
+  if (couponCode) {
+    try {
+      await redeemCoupon(couponCode, userId, order._id);
+    } catch (couponErr) {
+      console.warn(`[Coupon Notice] Could not increment coupon ${couponCode}:`, couponErr.message);
     }
   }
+
+  await createNotification({
+    user: userId,
+    title: 'Payment Received',
+    message: 'Payment received for order #' + order.orderNumber + '.',
+    type: 'PAYMENT_SUCCESS',
+    order: order._id,
+    orderNumber: order.orderNumber,
+    referenceId: 'PAYMENT_SUCCESS_' + order.orderNumber,
+  });
+
+  await createNotification({
+    user: userId,
+    title: 'Order Confirmed',
+    message: 'Your order #' + order.orderNumber + ' has been confirmed.',
+    type: 'ORDER_CONFIRMED',
+    order: order._id,
+    orderNumber: order.orderNumber,
+    referenceId: 'ORDER_CONFIRMED_' + order.orderNumber,
+  });
 
   // Clear user's cart
   await Cart.updateOne({ user: userId }, { $set: { items: [] } });
@@ -203,25 +293,64 @@ const handleWebhook = async (rawBody, signatureHeader, eventPayload) => {
     if (order && payment) {
       if (eventType === 'payment.captured' || eventType === 'order.paid') {
         if (payment.status !== 'PAID') {
-          payment.status = 'PAID';
-          payment.providerPaymentId = paymentObj.id || payment.providerPaymentId;
-          payment.paidAt = new Date();
-          await payment.save();
+          // Verify inventory deduction with rollback compensation
+          const deductedItems = [];
+          let stockFailed = false;
 
-          order.paymentStatus = 'PAID';
-          order.orderStatus = 'CONFIRMED';
-          order.placedAt = new Date();
-          await order.save();
-
-          // Deduct inventory atomically
           for (const item of order.items) {
-            await Product.updateOne(
+            const res = await Product.updateOne(
               { _id: item.product, stockQuantity: { $gte: item.quantity } },
               { $inc: { stockQuantity: -item.quantity } }
             );
+
+            if (res.modifiedCount === 0) {
+              stockFailed = true;
+              for (const prev of deductedItems) {
+                await Product.updateOne(
+                  { _id: prev.product },
+                  { $inc: { stockQuantity: prev.quantity } }
+                );
+              }
+              break;
+            }
+            deductedItems.push(item);
           }
 
-          await Cart.updateOne({ user: order.user }, { $set: { items: [] } });
+          if (stockFailed) {
+            order.paymentStatus = 'REFUND_PENDING';
+            order.orderStatus = 'OUT_OF_STOCK_PENDING_REFUND';
+            order.cancelReason = 'Out of stock at webhook confirmation.';
+            await order.save();
+
+            payment.status = 'PAID';
+            payment.providerPaymentId = paymentObj.id || payment.providerPaymentId;
+            payment.refundStatus = 'PENDING';
+            payment.refundAmount = order.grandTotal;
+            payment.paidAt = new Date();
+            await payment.save();
+          } else {
+            payment.status = 'PAID';
+            payment.providerPaymentId = paymentObj.id || payment.providerPaymentId;
+            payment.paidAt = new Date();
+            await payment.save();
+
+            order.paymentStatus = 'PAID';
+            order.orderStatus = 'CONFIRMED';
+            order.placedAt = new Date();
+            await order.save();
+
+            // Redeem coupon if present
+            const couponCode = order.items.find((i) => i.couponCode)?.couponCode;
+            if (couponCode) {
+              try {
+                await redeemCoupon(couponCode, order.user, order._id);
+              } catch (cErr) {
+                console.warn('[Webhook Coupon Notice]', cErr.message);
+              }
+            }
+
+            await Cart.updateOne({ user: order.user }, { $set: { items: [] } });
+          }
         }
       } else if (eventType === 'payment.failed') {
         payment.status = 'FAILED';
@@ -234,7 +363,7 @@ const handleWebhook = async (rawBody, signatureHeader, eventPayload) => {
     }
   }
 
-  // Save event identifier
+  // Save event identifier for idempotency
   await WebhookEvent.create({
     eventId,
     eventType,

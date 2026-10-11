@@ -21,6 +21,7 @@ const checkReviewEligibility = async (userId, productId) => {
   if (existingReview) {
     return {
       canReview: false,
+      eligible: false,
       hasReviewed: true,
       message: 'You have already reviewed this product.',
     };
@@ -35,6 +36,7 @@ const checkReviewEligibility = async (userId, productId) => {
   if (!deliveredOrder) {
     return {
       canReview: false,
+      eligible: false,
       hasReviewed: false,
       message: 'Only verified buyers with a delivered order can review this product.',
     };
@@ -42,8 +44,10 @@ const checkReviewEligibility = async (userId, productId) => {
 
   return {
     canReview: true,
+    eligible: true,
     hasReviewed: false,
     message: 'You are eligible to review this product.',
+    orderNumber: deliveredOrder.orderNumber,
   };
 };
 

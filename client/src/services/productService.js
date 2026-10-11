@@ -7,7 +7,12 @@ export const productService = {
   },
 
   getProductBySlug: async (slug) => {
-    const response = await API.get(`/products/${slug}`);
+    const response = await API.get(`/products/${encodeURIComponent(slug)}`);
+    return response.data;
+  },
+
+  getProductById: async (idOrSlug) => {
+    const response = await API.get(`/products/${encodeURIComponent(idOrSlug)}`);
     return response.data;
   },
 

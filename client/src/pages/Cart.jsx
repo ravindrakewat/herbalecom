@@ -113,17 +113,24 @@ const Cart = () => {
               <span>{siteConfig.currency}{grandTotal.toLocaleString('en-IN')}</span>
             </div>
 
-            <button
-              disabled
+            <Link
+              to="/checkout"
               className="btn btn-primary"
-              style={{ width: '100%', opacity: 0.6, cursor: 'not-allowed', marginTop: '0.5rem' }}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                marginTop: '0.5rem',
+                textDecoration: 'none',
+                padding: '0.85rem',
+                fontSize: '1rem',
+                fontWeight: 600,
+              }}
             >
-              Proceed to Checkout (Phase 5)
-            </button>
-
-            <p style={{ fontSize: '0.78rem', color: '#8e9e94', textAlign: 'center' }}>
-              Checkout &amp; Razorpay payment integration will be enabled in Phase 5.
-            </p>
+              Proceed to Checkout <ArrowRight size={18} />
+            </Link>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.8rem', color: '#5c6e63', marginTop: '0.5rem' }}>
               <ShieldCheck size={16} color="#52b788" /> 100% Safe &amp; Secure Checkout Guarantee

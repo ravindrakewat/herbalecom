@@ -48,13 +48,19 @@ const AdminReviews = lazy(() => import('./pages/admin/AdminReviews'));
 const AdminBanners = lazy(() => import('./pages/admin/AdminBanners'));
 const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
+const AdminShipments = lazy(() => import('./pages/admin/AdminShipments'));
+const AdminInvoices = lazy(() => import('./pages/admin/AdminInvoices'));
 
 function CustomerLayout({ children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: 'var(--bg-cream)' }}>
       <AnnouncementBar />
       <Header />
-      <main style={{ flex: 1 }}>{children}</main>
+      <main style={{ flex: 1 }}>
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
+      </main>
       <Footer />
     </div>
   );
@@ -87,6 +93,8 @@ function App() {
                     <Route path="inventory" element={<AdminInventory />} />
                     <Route path="orders" element={<AdminOrders />} />
                     <Route path="orders/:orderNumber" element={<AdminOrderDetail />} />
+                    <Route path="shipments" element={<AdminShipments />} />
+                    <Route path="invoices" element={<AdminInvoices />} />
                     <Route path="customers" element={<AdminCustomers />} />
                     <Route path="customers/:id" element={<AdminCustomerDetail />} />
                     <Route path="coupons" element={<AdminCoupons />} />
@@ -105,6 +113,7 @@ function App() {
                           <Route path="/" element={<Home />} />
                           <Route path="/shop" element={<Shop />} />
                           <Route path="/category/:slug" element={<Category />} />
+                          <Route path="/product/:slug" element={<ProductDetails />} />
                           <Route path="/product/:id" element={<ProductDetails />} />
                           <Route path="/search" element={<SearchResults />} />
                           <Route path="/cart" element={<Cart />} />

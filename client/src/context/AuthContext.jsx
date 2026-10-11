@@ -8,6 +8,13 @@ export const AuthProvider = ({ children }) => {
   const [authStatus, setAuthStatus] = useState('LOADING'); // 'LOADING' | 'AUTHENTICATED' | 'UNAUTHENTICATED'
 
   const checkAuthStatus = async () => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      setUser(null);
+      setAuthStatus('UNAUTHENTICATED');
+      return;
+    }
+
     try {
       const response = await authService.getMe();
       if (response.data?.user) {

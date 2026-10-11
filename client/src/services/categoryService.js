@@ -17,6 +17,21 @@ export const categoryService = {
     return response.data;
   },
 
+  getAllCategories: async () => {
+    const response = await API.get('/categories');
+    return response.data;
+  },
+
+  getCategories: async () => {
+    const response = await API.get('/categories');
+    return response.data;
+  },
+
+  getCategoryById: async (id) => {
+    const response = await API.get(`/categories/${id}`);
+    return response.data;
+  },
+
   createCategory: async (categoryData) => {
     const response = await API.post('/categories', categoryData);
     return response.data;

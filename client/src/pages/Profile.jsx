@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/authService';
 import Breadcrumbs from '../components/layout/Breadcrumbs';
 import ErrorState from '../components/common/ErrorState';
-import { User, MapPin, Plus, Trash2, CheckCircle } from 'lucide-react';
+import { User, MapPin, Plus, Trash2, CheckCircle, LogOut } from 'lucide-react';
 
 const Profile = () => {
-  const { user, setUser } = useAuth();
+  const { user, setUser, logout } = useAuth();
+  const navigate = useNavigate();
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -87,7 +89,30 @@ const Profile = () => {
     <div className="container" style={{ paddingBottom: '4rem' }}>
       <Breadcrumbs items={[{ label: 'My Profile' }]} />
 
-      <h1 style={{ fontSize: '2rem', color: '#1b4332', marginBottom: '1.5rem' }}>My Account &amp; Saved Addresses</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <h1 style={{ fontSize: '2rem', color: '#1b4332', margin: 0 }}>My Account &amp; Saved Addresses</h1>
+        <button
+          onClick={async () => {
+            await logout();
+            navigate('/');
+          }}
+          className="btn btn-outline"
+          style={{
+            borderColor: '#dc2626',
+            color: '#dc2626',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            padding: '0.5rem 1.1rem',
+            borderRadius: '99px',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          <LogOut size={16} /> Logout
+        </button>
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2.5rem' }}>
         

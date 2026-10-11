@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const { Product, Category } = require('../models');
 const ApiError = require('../utils/ApiError');
 
@@ -104,9 +105,18 @@ const getPublicProductsCatalog = async (queryParams = {}) => {
   };
 };
 
-// Public Product Details by Slug
-const getPublicProductBySlug = async (slug) => {
-  const product = await Product.findOne({ slug: slug.toLowerCase(), isActive: true })
+// Public Product Details by Slug or ID
+const getPublicProductBySlug = async (slugOrId) => {
+  if (!slugOrId) {
+    throw new ApiError(400, 'Product identifier is required');
+  }
+
+  const isObjectId = mongoose.Types.ObjectId.isValid(slugOrId);
+  const filter = isObjectId
+    ? { $or: [{ _id: slugOrId }, { slug: slugOrId.toLowerCase() }], isActive: true }
+    : { slug: slugOrId.toLowerCase(), isActive: true };
+
+  const product = await Product.findOne(filter)
     .populate('category', 'name slug description')
     .populate('subCategory', 'name slug')
     .lean();
@@ -252,6 +262,7 @@ const getLowStockProductsAdmin = async () => {
 module.exports = {
   getPublicProductsCatalog,
   getPublicProductBySlug,
+  getProductById: getPublicProductBySlug,
   createProduct,
   updateProduct,
   softDeleteProduct,

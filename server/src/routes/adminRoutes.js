@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const {
   getDashboardMetrics,
@@ -27,6 +27,15 @@ const {
   getInventoryReport,
   getAdminSettings,
   updateAdminSettings,
+  getAdminShipments,
+  getAdminShipmentDetail,
+  createAdminShipment,
+  updateAdminShipment,
+  dispatchAdminShipment,
+  deliverAdminShipment,
+  getAdminInvoices,
+  getAdminOrderInvoice,
+  downloadAdminOrderInvoice,
 } = require('../controllers/adminController');
 
 const { protect, authorizeRoles } = require('../middleware/authMiddleware');
@@ -81,4 +90,18 @@ router.get('/reports/inventory', getInventoryReport);
 router.get('/settings', getAdminSettings);
 router.patch('/settings', updateAdminSettings);
 
+// Shipment & Fulfillment Management
+router.get('/shipments', getAdminShipments);
+router.get('/shipments/:id', getAdminShipmentDetail);
+router.post('/orders/:orderNumber/shipments', createAdminShipment);
+router.patch('/shipments/:id', updateAdminShipment);
+router.post('/shipments/:id/dispatch', dispatchAdminShipment);
+router.post('/shipments/:id/deliver', deliverAdminShipment);
+
+// Invoices Management
+router.get('/invoices', getAdminInvoices);
+router.get('/orders/:orderNumber/invoice', getAdminOrderInvoice);
+router.get('/orders/:orderNumber/invoice/download', downloadAdminOrderInvoice);
+
 module.exports = router;
+

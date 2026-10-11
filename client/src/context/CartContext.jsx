@@ -10,7 +10,8 @@ export const CartProvider = ({ children }) => {
   const [guestCart, setGuestCart] = useState(() => {
     try {
       const saved = localStorage.getItem('herbal_guest_cart');
-      return saved ? JSON.parse(saved) : [];
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
       return [];
     }
@@ -198,26 +199,29 @@ export const CartProvider = ({ children }) => {
   };
 
   // Formatted items & subtotals
+  const safeGuestCart = Array.isArray(guestCart) ? guestCart : [];
+  const safeServerItems = Array.isArray(serverCart?.items) ? serverCart.items : [];
+
   const activeItems = isAuthenticated
-    ? serverCart.items.map((i) => ({
-        product: i.product._id,
-        name: i.product.name,
-        slug: i.product.slug,
-        price: i.product.sellingPrice,
-        mrp: i.product.mrp,
-        image: i.product.thumbnail || i.product.images?.[0]?.url || '',
-        quantity: i.quantity,
-        stockStatus: i.product.stockStatus,
+    ? safeServerItems.map((i) => ({
+        product: i.product?._id || i.product,
+        name: i.product?.name || 'Herbal Product',
+        slug: i.product?.slug || '',
+        price: i.product?.sellingPrice || i.price || 0,
+        mrp: i.product?.mrp || i.mrp || 0,
+        image: i.product?.thumbnail || i.product?.images?.[0]?.url || '',
+        quantity: i.quantity || 1,
+        stockStatus: i.product?.stockStatus || 'IN_STOCK',
       }))
-    : guestCart;
+    : safeGuestCart;
 
   const cartCount = isAuthenticated
-    ? serverCart.itemCount
-    : guestCart.reduce((acc, item) => acc + item.quantity, 0);
+    ? (serverCart?.itemCount || 0)
+    : safeGuestCart.reduce((acc, item) => acc + (item.quantity || 0), 0);
 
   const cartSubtotal = isAuthenticated
-    ? serverCart.subtotal
-    : guestCart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    ? (serverCart?.subtotal || 0)
+    : safeGuestCart.reduce((acc, item) => acc + (item.price || 0) * (item.quantity || 0), 0);
 
   return (
     <CartContext.Provider

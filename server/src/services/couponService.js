@@ -20,6 +20,16 @@ const validateCoupon = async (userId, code, cartItems = []) => {
     throw new ApiError(400, 'Coupon usage limit reached.');
   }
 
+  // Check per-user usage limit if configured
+  if (coupon.userUsageLimit > 0 && userId && coupon.usedBy && Array.isArray(coupon.usedBy)) {
+    const userCount = coupon.usedBy.filter(
+      (entry) => entry.user && entry.user.toString() === userId.toString()
+    ).length;
+    if (userCount >= coupon.userUsageLimit) {
+      throw new ApiError(400, `You have reached the maximum allowed redemptions (${coupon.userUsageLimit}) for coupon ${cleanCode}.`);
+    }
+  }
+
   let subtotal = 0;
   if (cartItems && Array.isArray(cartItems) && cartItems.length > 0) {
     for (const item of cartItems) {
@@ -65,4 +75,73 @@ const validateCoupon = async (userId, code, cartItems = []) => {
   };
 };
 
-module.exports = { validateCoupon };
+/**
+ * Atomically redeem a coupon and increment its usage counter
+ */
+const redeemCoupon = async (code, userId, orderId) => {
+  if (!code || typeof code !== 'string' || code.trim().length === 0) return false;
+  const cleanCode = code.toUpperCase().trim();
+
+  const coupon = await Coupon.findOne({ code: cleanCode, isActive: true });
+  if (!coupon) return false;
+
+  // Check per-user limit
+  if (coupon.userUsageLimit > 0 && userId && coupon.usedBy && Array.isArray(coupon.usedBy)) {
+    const userCount = coupon.usedBy.filter(
+      (entry) => entry.user && entry.user.toString() === userId.toString()
+    ).length;
+    if (userCount >= coupon.userUsageLimit) {
+      throw new ApiError(400, `You have reached the maximum allowed redemptions (${coupon.userUsageLimit}) for coupon ${cleanCode}.`);
+    }
+  }
+
+  // Atomic update enforcing usage limit
+  const query = {
+    code: cleanCode,
+    isActive: true,
+  };
+  if (coupon.usageLimit > 0) {
+    query.usedCount = { $lt: coupon.usageLimit };
+  }
+
+  const res = await Coupon.updateOne(query, {
+    $inc: { usedCount: 1 },
+    $push: {
+      usedBy: {
+        user: userId,
+        orderId: orderId,
+        usedAt: new Date(),
+      },
+    },
+  });
+
+  if (res.modifiedCount === 0) {
+    throw new ApiError(400, `Coupon ${cleanCode} usage limit has been reached.`);
+  }
+
+  return true;
+};
+
+/**
+ * Release a previously redeemed coupon (e.g. order cancelled)
+ */
+const releaseCoupon = async (code, orderId) => {
+  if (!code || typeof code !== 'string' || code.trim().length === 0) return false;
+  const cleanCode = code.toUpperCase().trim();
+
+  await Coupon.updateOne(
+    { code: cleanCode, usedCount: { $gt: 0 } },
+    {
+      $inc: { usedCount: -1 },
+      $pull: { usedBy: { orderId: orderId } },
+    }
+  );
+
+  return true;
+};
+
+module.exports = {
+  validateCoupon,
+  redeemCoupon,
+  releaseCoupon,
+};

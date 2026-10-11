@@ -1,26 +1,46 @@
 import React from 'react';
-import { Sparkles } from 'lucide-react';
-import { siteConfig } from '../../config/siteConfig';
+import { Leaf, Truck } from 'lucide-react';
 
 const AnnouncementBar = () => {
   return (
     <div
       style={{
-        backgroundColor: '#0d1f17',
-        color: '#52b788',
-        padding: '0.45rem 1rem',
-        fontSize: '0.82rem',
+        backgroundColor: '#142e20',
+        color: '#e4eee8',
+        padding: '0.42rem 1.5rem',
+        fontSize: '0.78rem',
         fontWeight: 500,
-        textAlign: 'center',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.5rem',
-        letterSpacing: '0.3px',
+        letterSpacing: '0.2px',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
       }}
     >
-      <Sparkles size={14} color="#74c69d" />
-      <span>{siteConfig.tagline} &bull; Free Shipping across India on orders above ₹499!</span>
+      <div
+        className="container-fluid"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#b8dec9' }}>
+          <Leaf size={14} color="#74c69d" />
+          <span>Pure &bull; Plant-Based &bull; Thoughtfully Made</span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#e4eee8' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Truck size={14} color="#74c69d" />
+            <span>Free Shipping across India on orders above ₹499</span>
+          </div>
+          <span className="desktop-only" style={{ opacity: 0.35 }}>|</span>
+          <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#b8dec9' }}>
+            <Leaf size={13} color="#74c69d" />
+            <span>100% Natural Ingredients</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

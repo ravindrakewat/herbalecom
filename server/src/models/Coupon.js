@@ -10,6 +10,14 @@ const couponSchema = new mongoose.Schema(
     expiryDate: { type: Date, required: true },
     usageLimit: { type: Number, default: 100 },
     usedCount: { type: Number, default: 0 },
+    userUsageLimit: { type: Number, default: 0 },
+    usedBy: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
+        usedAt: { type: Date, default: Date.now },
+      },
+    ],
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }

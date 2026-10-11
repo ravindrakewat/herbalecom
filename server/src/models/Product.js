@@ -22,10 +22,13 @@ const productSchema = new mongoose.Schema(
     subCategory: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null, index: true },
     sku: { type: String, required: [true, 'SKU is required'], unique: true, uppercase: true, trim: true },
 
-    // Pricing
+    // Pricing & Tax Classification
     mrp: { type: Number, required: [true, 'MRP is required'], min: 0 },
     sellingPrice: { type: Number, required: [true, 'Selling price is required'], min: 0 },
     costPrice: { type: Number, default: 0, min: 0, select: false }, // Internal cost price (Admin only)
+    hsnCode: { type: String, trim: true, default: '' },
+    gstRate: { type: Number, default: 0, min: 0, max: 28 },
+    taxInclusive: { type: Boolean, default: true },
 
     // Inventory
     stockQuantity: { type: Number, required: true, default: 0, min: 0 },

@@ -9,7 +9,10 @@ const orderItemSchema = new mongoose.Schema({
   mrp: { type: Number, required: true, min: 0 },
   sellingPrice: { type: Number, required: true, min: 0 },
   discount: { type: Number, default: 0, min: 0 },
-    couponCode: { type: String, trim: true, default: '' },
+  couponCode: { type: String, trim: true, default: '' },
+  hsnCode: { type: String, trim: true, default: '' },
+  gstRate: { type: Number, default: 0, min: 0 },
+  taxInclusive: { type: Boolean, default: true },
   subtotal: { type: Number, required: true, min: 0 },
 });
 
@@ -54,13 +57,23 @@ const orderSchema = new mongoose.Schema(
     },
     paymentStatus: {
       type: String,
-      enum: ['PENDING', 'PAID', 'FAILED', 'REFUNDED'],
+      enum: ['PENDING', 'PAID', 'FAILED', 'REFUNDED', 'REFUND_PENDING'],
       default: 'PENDING',
       index: true,
     },
     orderStatus: {
       type: String,
-      enum: ['PAYMENT_PENDING', 'PLACED', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'],
+      enum: [
+        'PAYMENT_PENDING',
+        'PLACED',
+        'CONFIRMED',
+        'PROCESSING',
+        'PACKED',
+        'SHIPPED',
+        'DELIVERED',
+        'CANCELLED',
+        'OUT_OF_STOCK_PENDING_REFUND',
+      ],
       default: 'PAYMENT_PENDING',
       index: true,
     },

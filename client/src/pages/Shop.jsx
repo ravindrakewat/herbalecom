@@ -64,7 +64,7 @@ const Shop = () => {
       setPagination(res.pagination || { total: 0, page: 1, pages: 1, limit: 12 });
     } catch (err) {
       console.error('Failed to fetch products', err);
-      setError('Unable to load product catalog. Please try again.');
+      setError(err.response?.data?.message || err.message || 'Unable to load product catalog. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -110,20 +110,50 @@ const Shop = () => {
       <Breadcrumbs items={[{ label: 'Shop Storefront' }]} />
 
       {/* Header Banner */}
-      <div className="glass-card" style={{ padding: '2rem 1.5rem', borderRadius: '20px', marginBottom: '2rem', backgroundColor: '#ffffff' }}>
-        <h1 style={{ fontSize: '2rem', color: '#1b4332', marginBottom: '0.4rem' }}>Herbal Storefront Catalog</h1>
-        <p style={{ color: '#5c6e63', fontSize: '0.95rem' }}>Browse 100% authentic Himalayan organic teas, essential oils &amp; Ayurvedic supplements.</p>
+      <div
+        style={{
+          padding: '2.5rem 2rem',
+          borderRadius: '20px',
+          marginBottom: '2rem',
+          backgroundColor: '#f5efe4',
+          border: '1px solid #eae2d4',
+        }}
+      >
+        <span
+          style={{
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            color: '#6e6255',
+            letterSpacing: '2px',
+            textTransform: 'uppercase',
+            display: 'block',
+            marginBottom: '0.4rem',
+          }}
+        >
+          AyuVeda Pure Storefront
+        </span>
+        <h1
+          style={{
+            fontSize: '2.2rem',
+            color: '#153222',
+            fontFamily: 'var(--font-serif)',
+            fontWeight: 700,
+            marginBottom: '0.4rem',
+          }}
+        >
+          Herbal Wellness Collection
+        </h1>
+        <p style={{ color: '#55685c', fontSize: '0.98rem' }}>
+          Browse 100% authentic Himalayan organic teas, therapeutic essential oils &amp; Ayurvedic formulations.
+        </p>
       </div>
 
-      {error && <ErrorState message={error} onRetry={fetchProducts} />}
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '2rem' }}>
-        
-        {/* Desktop Layout Grid (Filters Sidebar + Product Catalog) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '2rem' }}>
-          
+      {error ? (
+        <ErrorState message={error} onRetry={fetchProducts} />
+      ) : (
+        <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
           {/* Desktop Filter Sidebar */}
-          <div className="desktop-only" style={{ gridColumn: 'span 3' }}>
+          <div className="desktop-only" style={{ width: '280px', flexShrink: 0 }}>
             <ProductFilters
               categories={categories}
               filters={filters}
@@ -133,92 +163,92 @@ const Shop = () => {
           </div>
 
           {/* Main Catalog Column */}
-          <div style={{ gridColumn: 'span 12', '@media (min-width: 900px)': { gridColumn: 'span 9' } }}>
-            
-            {/* Catalog Control Bar (Mobile filter toggle + Sort dropdown + Item count) */}
-            <div
-              className="glass-card"
-              style={{
-                padding: '0.85rem 1.25rem',
-                borderRadius: '14px',
-                marginBottom: '1.5rem',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '1rem',
-                backgroundColor: '#ffffff',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <button
-                  className="mobile-only btn btn-outline"
-                  onClick={() => setIsMobileFilterOpen(true)}
-                  style={{ padding: '0.4rem 0.85rem', fontSize: '0.85rem' }}
-                >
-                  <Filter size={16} /> Filters
-                </button>
-                <span style={{ fontSize: '0.88rem', color: '#5c6e63', fontWeight: 500 }}>
-                  Showing <strong>{products.length}</strong> of <strong>{pagination.total}</strong> products
-                </span>
-              </div>
-
-              <ProductSort value={filters.sort} onChange={(newSort) => updateFilters({ sort: newSort })} />
-            </div>
-
-            {/* Product Grid */}
-            <ProductGrid products={products} loading={loading} />
-
-            {/* Pagination Controls */}
-            {!loading && pagination.pages > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginTop: '3rem' }}>
-                <button
-                  onClick={() => handlePageChange(pagination.page - 1)}
-                  disabled={pagination.page === 1}
-                  className="btn btn-outline"
-                  style={{ padding: '0.5rem 1rem', opacity: pagination.page === 1 ? 0.4 : 1 }}
-                >
-                  <ChevronLeft size={16} /> Previous
-                </button>
-
-                <div style={{ display: 'flex', gap: '0.3rem' }}>
-                  {Array.from({ length: pagination.pages }).map((_, idx) => {
-                    const p = idx + 1;
-                    return (
-                      <button
-                        key={p}
-                        onClick={() => handlePageChange(p)}
-                        style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '50%',
-                          border: 'none',
-                          backgroundColor: pagination.page === p ? '#1b4332' : '#e2e8e4',
-                          color: pagination.page === p ? '#ffffff' : '#1b4332',
-                          fontWeight: 600,
-                          fontSize: '0.85rem',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {p}
-                      </button>
-                    );
-                  })}
+          <div style={{ flex: 1, minWidth: 0 }}>
+              
+              {/* Catalog Control Bar (Mobile filter toggle + Sort dropdown + Item count) */}
+              <div
+                className="glass-card"
+                style={{
+                  padding: '0.85rem 1.25rem',
+                  borderRadius: '14px',
+                  marginBottom: '1.5rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '1rem',
+                  backgroundColor: '#ffffff',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <button
+                    className="mobile-only btn btn-outline"
+                    onClick={() => setIsMobileFilterOpen(true)}
+                    style={{ padding: '0.4rem 0.85rem', fontSize: '0.85rem' }}
+                  >
+                    <Filter size={16} /> Filters
+                  </button>
+                  <span style={{ fontSize: '0.88rem', color: '#5c6e63', fontWeight: 500 }}>
+                    Showing <strong>{Array.isArray(products) ? products.length : 0}</strong> of <strong>{pagination?.total || 0}</strong> products
+                  </span>
                 </div>
 
-                <button
-                  onClick={() => handlePageChange(pagination.page + 1)}
-                  disabled={pagination.page === pagination.pages}
-                  className="btn btn-outline"
-                  style={{ padding: '0.5rem 1rem', opacity: pagination.page === pagination.pages ? 0.4 : 1 }}
-                >
-                  Next <ChevronRight size={16} />
-                </button>
+                <ProductSort value={filters.sort} onChange={(newSort) => updateFilters({ sort: newSort })} />
               </div>
-            )}
+
+              {/* Product Grid */}
+              <ProductGrid products={products} loading={loading} />
+
+              {/* Pagination Controls */}
+              {!loading && pagination?.pages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginTop: '3rem' }}>
+                  <button
+                    onClick={() => handlePageChange(pagination.page - 1)}
+                    disabled={pagination.page === 1}
+                    className="btn btn-outline"
+                    style={{ padding: '0.5rem 1rem', opacity: pagination.page === 1 ? 0.4 : 1 }}
+                  >
+                    <ChevronLeft size={16} /> Previous
+                  </button>
+
+                  <div style={{ display: 'flex', gap: '0.3rem' }}>
+                    {Array.from({ length: pagination.pages }).map((_, idx) => {
+                      const p = idx + 1;
+                      return (
+                        <button
+                          key={p}
+                          onClick={() => handlePageChange(p)}
+                          style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '50%',
+                            border: 'none',
+                            backgroundColor: pagination.page === p ? '#1b4332' : '#e2e8e4',
+                            color: pagination.page === p ? '#ffffff' : '#1b4332',
+                            fontWeight: 600,
+                            fontSize: '0.85rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {p}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => handlePageChange(pagination.page + 1)}
+                    disabled={pagination.page === pagination.pages}
+                    className="btn btn-outline"
+                    style={{ padding: '0.5rem 1rem', opacity: pagination.page === pagination.pages ? 0.4 : 1 }}
+                  >
+                    Next <ChevronRight size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
+      )}
 
       {/* Mobile Filter Drawer Modal */}
       {isMobileFilterOpen && (

@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import userService from '../services/userService';
 import orderService from '../services/orderService';
+import paymentService from '../services/paymentService';
 import couponService from '../services/couponService';
+import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import Breadcrumbs from '../components/layout/Breadcrumbs';
 import { siteConfig } from '../config/siteConfig';
@@ -19,6 +21,7 @@ import {
 
 const Checkout = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { cartItems, clearCart } = useCart();
 
   const [addresses, setAddresses] = useState([]);
@@ -61,11 +64,19 @@ const Checkout = () => {
     try {
       setLoading(true);
       const res = await userService.getAddresses();
-      const addrList = res.data?.data || res.data || [];
+      const addrList = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res)
+        ? res
+        : [];
       setAddresses(addrList);
       if (addrList.length > 0) {
         const defaultAddr = addrList.find((a) => a.isDefault) || addrList[0];
-        setSelectedAddressId(defaultAddr._id);
+        if (defaultAddr?._id) {
+          setSelectedAddressId(defaultAddr._id);
+        }
       }
     } catch (err) {
       console.error('Failed to load user addresses', err);
@@ -129,12 +140,25 @@ const Checkout = () => {
     e.preventDefault();
     try {
       const res = await userService.createAddress(newAddress);
-      const created = res.data?.data || res.data;
+      const created = res.data || res.data?.data || res;
       await fetchAddresses();
-      setSelectedAddressId(created._id);
+      if (created?._id) {
+        setSelectedAddressId(created._id);
+      }
       setShowAddModal(false);
+      setNewAddress({
+        fullName: '',
+        phone: '',
+        addressLine1: '',
+        addressLine2: '',
+        city: '',
+        state: '',
+        pincode: '',
+        isDefault: true,
+      });
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to add address');
+      const errMsg = err.response?.data?.errors?.join(', ') || err.response?.data?.message || err.message || 'Failed to add address';
+      alert(errMsg);
     }
   };
 
@@ -147,17 +171,14 @@ const Checkout = () => {
     try {
       setProcessing(true);
 
-      const orderPayload = {
-        shippingAddressId: selectedAddressId,
-        paymentMethod,
-        couponCode: appliedCoupon ? appliedCoupon.code : undefined,
-      };
-
-      const res = await orderService.createOrder(orderPayload);
-      const result = res.data?.data || res.data || res;
-
       // Handle ONLINE (Razorpay) payment vs COD
-      if (paymentMethod === 'ONLINE' && result.razorpayOrderId) {
+      if (paymentMethod === 'ONLINE') {
+        const payRes = await paymentService.createRazorpayOrder(
+          selectedAddressId,
+          appliedCoupon ? appliedCoupon.code : undefined
+        );
+        const result = payRes.data?.data || payRes.data || payRes;
+
         if (!window.Razorpay) {
           alert('Razorpay SDK failed to load. Please check your internet connection.');
           setProcessing(false);
@@ -173,10 +194,10 @@ const Checkout = () => {
           order_id: result.razorpayOrderId,
           handler: async function (response) {
             try {
-              await orderService.verifyPayment({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
+              await paymentService.verifyRazorpayPayment({
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
               });
               clearCart();
               navigate(`/order-success/${result.orderNumber}`);
@@ -186,9 +207,9 @@ const Checkout = () => {
             }
           },
           prefill: {
-            name: result.user?.name || '',
-            email: result.user?.email || '',
-            contact: result.user?.phone || '',
+            name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.name || '' : '',
+            email: user?.email || '',
+            contact: user?.phone || '',
           },
           theme: {
             color: '#1b4332',
@@ -203,6 +224,15 @@ const Checkout = () => {
         rzp.open();
       } else {
         // COD Order
+        const orderPayload = {
+          addressId: selectedAddressId,
+          paymentMethod: 'COD',
+          couponCode: appliedCoupon ? appliedCoupon.code : undefined,
+        };
+
+        const res = await orderService.createOrder(orderPayload);
+        const result = res.data?.data || res.data || res;
+
         clearCart();
         navigate(`/order-success/${result.orderNumber}`);
       }
@@ -459,9 +489,34 @@ const Checkout = () => {
                     <span>Shipping Charge:</span>
                     <span>{preview.shippingCharge === 0 ? <strong style={{ color: '#52b788' }}>FREE</strong> : `${siteConfig.currency}${preview.shippingCharge}`}</span>
                   </div>
+
+                  {preview.estimatedDeliveryDays && (
+                    <div style={{ fontSize: '0.8rem', color: '#2d6a4f', backgroundColor: '#e8f5e9', padding: '0.4rem 0.6rem', borderRadius: '6px' }}>
+                      🚚 Estimated Delivery: ~{preview.estimatedDeliveryDays} business days ({preview.zoneName || 'Standard'})
+                    </div>
+                  )}
+
+                  {preview.freeShippingApplied && (
+                    <div style={{ fontSize: '0.8rem', color: '#2d6a4f', fontWeight: 600 }}>
+                      🎉 Free shipping applied to your order!
+                    </div>
+                  )}
+
+                  {preview.serviceable === false && (
+                    <div style={{ backgroundColor: '#ffebee', color: '#c62828', padding: '0.6rem 0.8rem', borderRadius: '6px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <AlertCircle size={16} /> Destination pincode is not serviceable for delivery.
+                    </div>
+                  )}
+
+                  {paymentMethod === 'COD' && preview.codAvailable === false && (
+                    <div style={{ backgroundColor: '#fff3e0', color: '#e65100', padding: '0.6rem 0.8rem', borderRadius: '6px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <AlertCircle size={16} /> Cash on Delivery (COD) is not available for this pincode. Please select ONLINE payment.
+                    </div>
+                  )}
+
                   {preview.tax > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Estimated Tax:</span>
+                      <span>Estimated Tax (GST):</span>
                       <span>{siteConfig.currency}{preview.tax}</span>
                     </div>
                   )}
@@ -476,13 +531,22 @@ const Checkout = () => {
 
                 <button
                   onClick={handlePlaceOrder}
-                  disabled={processing || !selectedAddressId}
+                  disabled={
+                    processing ||
+                    !selectedAddressId ||
+                    preview.serviceable === false ||
+                    (paymentMethod === 'COD' && preview.codAvailable === false)
+                  }
                   className="btn btn-primary"
                   style={{ width: '100%', padding: '1rem', fontSize: '1rem', fontWeight: 700, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
                 >
                   <ShieldCheck size={20} />
                   {processing
                     ? 'Processing Order...'
+                    : preview.serviceable === false
+                    ? 'Address Unserviceable'
+                    : paymentMethod === 'COD' && preview.codAvailable === false
+                    ? 'COD Not Available'
                     : paymentMethod === 'ONLINE'
                     ? `Pay ${siteConfig.currency}${preview.grandTotal.toLocaleString('en-IN')}`
                     : 'Confirm COD Order'}

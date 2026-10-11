@@ -109,25 +109,33 @@ const refreshTokenHandler = async (req, res, next) => {
     }
 
     const tokenHash = hashToken(rawRefreshToken);
-    const session = await Session.findOne({ tokenHash, isRevoked: false });
+    const now = new Date();
 
-    if (!session || session.expiresAt < new Date()) {
+    // Atomic claim: atomically find, validate unexpired, and revoke in a single atomic operation
+    const session = await Session.findOneAndUpdate(
+      {
+        tokenHash,
+        isRevoked: false,
+        expiresAt: { $gt: now },
+      },
+      {
+        $set: { isRevoked: true },
+      },
+      { new: false }
+    );
+
+    if (!session) {
       clearRefreshCookie(res);
       throw new ApiError(401, 'Refresh token expired or revoked');
     }
 
     const user = await User.findById(session.user);
     if (!user || user.isActive === false) {
-      session.isRevoked = true;
-      await session.save();
       clearRefreshCookie(res);
       throw new ApiError(401, 'User account invalid or inactive');
     }
 
-    // Token Rotation
-    session.isRevoked = true;
-    await session.save();
-
+    // Token Rotation: issue replacement tokens
     const newAccessToken = generateAccessToken(user);
     const newRawRefreshToken = generateRefreshToken();
     const newTokenHash = hashToken(newRawRefreshToken);

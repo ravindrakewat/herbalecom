@@ -130,6 +130,55 @@ export const updateAdminSettings = async (data) => {
   return response.data;
 };
 
+// Shipments & Fulfillment
+export const getAdminShipments = async (params = {}) => {
+  const response = await api.get('/admin/shipments', { params });
+  return response.data;
+};
+
+export const getAdminShipmentDetail = async (id) => {
+  const response = await api.get(`/admin/shipments/${id}`);
+  return response.data;
+};
+
+export const createAdminShipment = async (orderNumber, data) => {
+  const response = await api.post(`/admin/orders/${orderNumber}/shipments`, data);
+  return response.data;
+};
+
+export const updateAdminShipment = async (id, data) => {
+  const response = await api.patch(`/admin/shipments/${id}`, data);
+  return response.data;
+};
+
+export const dispatchAdminShipment = async (id, data = {}) => {
+  const response = await api.post(`/admin/shipments/${id}/dispatch`, data);
+  return response.data;
+};
+
+export const deliverAdminShipment = async (id, data = {}) => {
+  const response = await api.post(`/admin/shipments/${id}/deliver`, data);
+  return response.data;
+};
+
+// Invoices
+export const getAdminInvoices = async (params = {}) => {
+  const response = await api.get('/admin/invoices', { params });
+  return response.data;
+};
+
+export const getAdminOrderInvoice = async (orderNumber) => {
+  const response = await api.get(`/admin/orders/${orderNumber}/invoice`);
+  return response.data;
+};
+
+export const downloadAdminOrderInvoice = async (orderNumber) => {
+  const response = await api.get(`/admin/orders/${orderNumber}/invoice/download`, {
+    responseType: 'blob',
+  });
+  return response.data;
+};
+
 export default {
   getDashboardMetrics,
   getRevenueTrend,
@@ -157,4 +206,14 @@ export default {
   getInventoryReport,
   getAdminSettings,
   updateAdminSettings,
+  getAdminShipments,
+  getAdminShipmentDetail,
+  createAdminShipment,
+  updateAdminShipment,
+  dispatchAdminShipment,
+  deliverAdminShipment,
+  getAdminInvoices,
+  getAdminOrderInvoice,
+  downloadAdminOrderInvoice,
 };
+

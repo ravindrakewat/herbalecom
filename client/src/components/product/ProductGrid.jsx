@@ -14,14 +14,14 @@ const ProductGrid = ({ products = [], loading = false, emptyMessage = 'No produc
     );
   }
 
-  if (!products || products.length === 0) {
+  if (!Array.isArray(products) || products.length === 0) {
     return <EmptyState title="No Products Available" message={emptyMessage} actionText="Clear Filters" actionLink="/shop" />;
   }
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1.5rem' }}>
       {products.map((product) => (
-        <ProductCard key={product._id} product={product} />
+        <ProductCard key={product._id || product.id} product={product} />
       ))}
     </div>
   );

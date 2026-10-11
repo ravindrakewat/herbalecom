@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const compression = require('compression');
@@ -20,6 +20,8 @@ const adminRoutes = require('./routes/adminRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const couponRoutes = require('./routes/couponRoutes');
+const shippingRoutes = require('./routes/shippingRoutes');
+const bannerRoutes = require('./routes/bannerRoutes');
 
 const app = express();
 
@@ -39,13 +41,36 @@ app.use(
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// CORS configuration
+// CORS — explicit allowlist, never wildcard with credentials
+const buildAllowedOrigins = () => {
+  const base = [
+    process.env.CLIENT_URL || 'http://localhost:5173',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+  ];
+  // Support comma-separated additional origins: EXTRA_CLIENT_URLS=https://a.com,https://b.com
+  const extras = process.env.EXTRA_CLIENT_URLS
+    ? process.env.EXTRA_CLIENT_URLS.split(',').map((u) => u.trim()).filter(Boolean)
+    : [];
+  return [...new Set([...base, ...extras])];
+};
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g., curl, Postman, same-server)
+      if (!origin) return callback(null, true);
+      const allowedOrigins = buildAllowedOrigins();
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error(`CORS: Origin '${origin}' is not allowed.`));
+    },
     credentials: true,
   })
 );
+
+app.buildAllowedOrigins = buildAllowedOrigins;
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -85,6 +110,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/coupons', couponRoutes);
+app.use('/api/shipping', shippingRoutes);
+app.use('/api/banners', bannerRoutes);
 
 // Error Handling Middlewares
 app.use(notFound);

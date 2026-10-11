@@ -1,10 +1,30 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
+/**
+ * Retrieve validated JWT Secret with strict production enforcement
+ */
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (secret && secret.trim().length > 0) {
+    if (process.env.NODE_ENV === 'production' && secret.trim().length < 32) {
+      throw new Error('[Security Fatal] Production JWT_SECRET must be at least 32 characters long.');
+    }
+    return secret.trim();
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('[Security Fatal] Production startup blocked: JWT_SECRET environment variable is missing.');
+  }
+
+  // Safe isolated fallback for local test/dev environments only
+  return 'herbal_jwt_dev_test_secret_key_isolated_2026';
+};
+
 const generateAccessToken = (user) => {
   return jwt.sign(
     { id: user._id, role: user.role },
-    process.env.JWT_SECRET || 'herbal_jwt_secret_key_production_2026_super_secure',
+    getJwtSecret(),
     { expiresIn: process.env.JWT_EXPIRES_IN || '15m' }
   );
 };
@@ -40,6 +60,7 @@ const clearRefreshCookie = (res) => {
 };
 
 module.exports = {
+  getJwtSecret,
   generateAccessToken,
   generateRefreshToken,
   hashToken,

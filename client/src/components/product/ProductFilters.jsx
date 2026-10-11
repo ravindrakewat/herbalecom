@@ -29,17 +29,18 @@ const ProductFilters = ({ categories = [], filters = {}, onFilterChange, onReset
             />
             <span>All Categories</span>
           </label>
-          {categories.map((cat) => (
-            <label key={cat._id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-              <input
-                type="radio"
-                name="category"
-                checked={filters.category === cat.slug}
-                onChange={() => onFilterChange({ category: cat.slug })}
-              />
-              <span>{cat.name}</span>
-            </label>
-          ))}
+          {Array.isArray(categories) &&
+            categories.map((cat) => (
+              <label key={cat._id || cat.slug} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="category"
+                  checked={filters.category === cat.slug}
+                  onChange={() => onFilterChange({ category: cat.slug })}
+                />
+                <span>{cat.name}</span>
+              </label>
+            ))}
         </div>
       </div>
 

@@ -4,7 +4,7 @@ import orderService from '../services/orderService';
 import { siteConfig } from '../config/siteConfig';
 import Breadcrumbs from '../components/layout/Breadcrumbs';
 import EmptyState from '../components/common/EmptyState';
-import { ChevronRight, XOctagon, Eye } from 'lucide-react';
+import { ChevronRight, XOctagon, Eye, FileText } from 'lucide-react';
 
 const OrderHistory = () => {
   const [orders, setOrders] = useState([]);
@@ -44,6 +44,22 @@ const OrderHistory = () => {
       alert(err.response?.data?.message || 'Failed to cancel order.');
     } finally {
       setCancellingOrderNo('');
+    }
+  };
+
+  const handleDownloadInvoice = async (orderNumber) => {
+    try {
+      const blob = await orderService.downloadInvoice(orderNumber);
+      const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Invoice-${orderNumber}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Invoice is not yet available or failed to generate.');
     }
   };
 
@@ -193,6 +209,27 @@ const OrderHistory = () => {
                     >
                       <XOctagon size={16} />
                       {cancellingOrderNo === order.orderNumber ? 'Cancelling...' : 'Cancel Order'}
+                    </button>
+                  )}
+                  {['CONFIRMED', 'PROCESSING', 'PACKED', 'SHIPPED', 'DELIVERED'].includes(order.orderStatus) && (
+                    <button
+                      onClick={() => handleDownloadInvoice(order.orderNumber)}
+                      style={{
+                        background: '#e8f5e9',
+                        border: '1px solid #52b788',
+                        color: '#1b4332',
+                        padding: '0.4rem 0.85rem',
+                        borderRadius: '8px',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                      }}
+                      title="Download PDF Tax Invoice"
+                    >
+                      <FileText size={15} /> Invoice
                     </button>
                   )}
                   <Link

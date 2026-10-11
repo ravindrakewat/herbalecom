@@ -1,5 +1,7 @@
 const { createNotification } = require('../services/notificationService');
-﻿const mongoose = require('mongoose');
+const shipmentService = require('../services/shipmentService');
+const invoiceService = require('../services/invoiceService');
+const mongoose = require('mongoose');
 const {
   User,
   Category,
@@ -10,6 +12,8 @@ const {
   Review,
   Banner,
   StoreSettings,
+  Shipment,
+  Invoice,
 } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { sendSuccess } = require('../utils/apiResponse');
@@ -275,8 +279,18 @@ const getAdminOrderDetail = async (req, res, next) => {
       throw new ApiError(404, 'Order not found');
     }
 
-    const payment = await Payment.findOne({ order: order._id }).lean();
-    return sendSuccess(res, 200, 'Order details fetched successfully', { order, payment });
+    const [payment, shipment, invoice] = await Promise.all([
+      Payment.findOne({ order: order._id }).lean(),
+      Shipment.findOne({ order: order._id }).lean(),
+      Invoice.findOne({ order: order._id }).lean(),
+    ]);
+
+    return sendSuccess(res, 200, 'Order details fetched successfully', {
+      order,
+      payment,
+      shipment,
+      invoice,
+    });
   } catch (error) {
     next(error);
   }
@@ -288,7 +302,16 @@ const updateAdminOrderStatus = async (req, res, next) => {
     const { orderNumber } = req.params;
     const { orderStatus, paymentStatus } = req.body;
 
-    const allowedStatuses = ['PAYMENT_PENDING', 'PLACED', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
+    const allowedStatuses = [
+      'PAYMENT_PENDING',
+      'PLACED',
+      'CONFIRMED',
+      'PROCESSING',
+      'PACKED',
+      'SHIPPED',
+      'DELIVERED',
+      'CANCELLED',
+    ];
     if (orderStatus && !allowedStatuses.includes(orderStatus)) {
       throw new ApiError(400, 'Invalid orderStatus: ' + orderStatus);
     }
@@ -296,6 +319,21 @@ const updateAdminOrderStatus = async (req, res, next) => {
     const order = await Order.findOne({ orderNumber });
     if (!order) {
       throw new ApiError(404, 'Order not found');
+    }
+
+    // State transition guard: Shipped or delivered orders cannot be cancelled
+    if (orderStatus === 'CANCELLED' && ['SHIPPED', 'DELIVERED'].includes(order.orderStatus)) {
+      throw new ApiError(400, `Cannot cancel an order that is already ${order.orderStatus}.`);
+    }
+
+    // State transition guard: Delivered orders cannot revert to previous states
+    if (order.orderStatus === 'DELIVERED' && orderStatus && orderStatus !== 'DELIVERED') {
+      throw new ApiError(400, 'Delivered orders cannot be transitioned to another status.');
+    }
+
+    // Payment security: Admins cannot arbitrarily mark Razorpay (ONLINE) orders as PAID without verified gateway completion
+    if (paymentStatus === 'PAID' && order.paymentMethod === 'ONLINE' && order.paymentStatus !== 'PAID') {
+      throw new ApiError(400, 'Online payments cannot be manually marked as paid. Must be verified through payment gateway.');
     }
 
     if (orderStatus) order.orderStatus = orderStatus;
@@ -308,6 +346,7 @@ const updateAdminOrderStatus = async (req, res, next) => {
       const notifMap = {
         CONFIRMED: { title: 'Order Confirmed', message: 'Your order #' + order.orderNumber + ' has been confirmed.', type: 'ORDER_CONFIRMED' },
         PROCESSING: { title: 'Order Processing', message: 'Your order #' + order.orderNumber + ' is being prepared.', type: 'ORDER_PROCESSING' },
+        PACKED: { title: 'Order Packed', message: 'Your order #' + order.orderNumber + ' has been packed.', type: 'ORDER_PACKED' },
         SHIPPED: { title: 'Order Shipped', message: 'Your order #' + order.orderNumber + ' has been shipped!', type: 'ORDER_SHIPPED' },
         DELIVERED: { title: 'Order Delivered', message: 'Your order #' + order.orderNumber + ' has been delivered. Thank you!', type: 'ORDER_DELIVERED' },
         CANCELLED: { title: 'Order Cancelled', message: 'Your order #' + order.orderNumber + ' has been cancelled.', type: 'ORDER_CANCELLED' },
@@ -633,10 +672,157 @@ const updateAdminSettings = async (req, res, next) => {
     if (!settings) {
       settings = new StoreSettings(req.body);
     } else {
-      Object.assign(settings, req.body);
+      // Whitelist update fields to protect internal settings
+      const allowed = [
+        'storeName',
+        'supportEmail',
+        'supportPhone',
+        'currency',
+        'freeShippingThreshold',
+        'defaultShippingCharge',
+        'codAvailable',
+        'prepaidAvailable',
+        'minOrderValue',
+        'maxOrderValue',
+        'estimatedDispatchDays',
+        'estimatedDeliveryDays',
+        'shippingActive',
+        'serviceablePincodes',
+        'excludedPincodes',
+        'shippingZones',
+        'taxRate',
+        'legalBusinessName',
+        'businessAddress',
+        'gstin',
+        'stateCode',
+        'stateName',
+        'invoicePrefix',
+        'invoiceContactPhone',
+        'invoiceContactEmail',
+        'pricesIncludeTax',
+      ];
+      for (const key of allowed) {
+        if (req.body[key] !== undefined) {
+          settings[key] = req.body[key];
+        }
+      }
     }
     await settings.save();
     return sendSuccess(res, 200, 'Store settings updated successfully', settings);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 12. Admin Shipment Management APIs
+const getAdminShipments = async (req, res, next) => {
+  try {
+    const { shipments, pagination } = await shipmentService.listAdminShipments(req.query);
+    return sendSuccess(res, 200, 'Shipments fetched successfully', shipments, pagination);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getAdminShipmentDetail = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const shipment = await Shipment.findById(id)
+      .populate('order')
+      .populate('user', 'firstName lastName email phone')
+      .lean();
+    if (!shipment) {
+      throw new ApiError(404, 'Shipment not found');
+    }
+    return sendSuccess(res, 200, 'Shipment details fetched successfully', shipment);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createAdminShipment = async (req, res, next) => {
+  try {
+    const { orderNumber } = req.params;
+    const shipment = await shipmentService.createShipmentForOrder(orderNumber, req.body);
+    return sendSuccess(res, 201, 'Shipment created successfully', shipment);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateAdminShipment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const shipment = await shipmentService.updateShipmentDetails(id, req.body);
+    return sendSuccess(res, 200, 'Shipment updated successfully', shipment);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const dispatchAdminShipment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const shipment = await shipmentService.dispatchShipment(id, req.body);
+    return sendSuccess(res, 200, 'Shipment dispatched successfully', shipment);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deliverAdminShipment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const shipment = await shipmentService.deliverShipment(id, req.body);
+    return sendSuccess(res, 200, 'Shipment marked as delivered successfully', shipment);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 13. Admin Invoice Management APIs
+const getAdminInvoices = async (req, res, next) => {
+  try {
+    const { invoices, pagination } = await invoiceService.listAdminInvoices(req.query);
+    return sendSuccess(res, 200, 'Invoices fetched successfully', invoices, pagination);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getAdminOrderInvoice = async (req, res, next) => {
+  try {
+    const { orderNumber } = req.params;
+    const invoice = await invoiceService.getOrCreateInvoiceForOrder(orderNumber, null, true);
+
+    if (req.query.format === 'pdf' || req.query.download === 'pdf') {
+      const pdfBuffer = await invoiceService.generateInvoicePDFBuffer(invoice);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="Invoice-${invoice.invoiceNumber}.pdf"`);
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      return res.end(pdfBuffer);
+    }
+
+    return sendSuccess(res, 200, 'Invoice fetched successfully', invoice);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const downloadAdminOrderInvoice = async (req, res, next) => {
+  try {
+    const { orderNumber } = req.params;
+    const invoice = await invoiceService.getOrCreateInvoiceForOrder(orderNumber, null, true);
+    const pdfBuffer = await invoiceService.generateInvoicePDFBuffer(invoice);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="Invoice-${invoice.invoiceNumber}.pdf"`);
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    return res.end(pdfBuffer);
   } catch (error) {
     next(error);
   }
@@ -669,4 +855,14 @@ module.exports = {
   getInventoryReport,
   getAdminSettings,
   updateAdminSettings,
+  getAdminShipments,
+  getAdminShipmentDetail,
+  createAdminShipment,
+  updateAdminShipment,
+  dispatchAdminShipment,
+  deliverAdminShipment,
+  getAdminInvoices,
+  getAdminOrderInvoice,
+  downloadAdminOrderInvoice,
 };
+

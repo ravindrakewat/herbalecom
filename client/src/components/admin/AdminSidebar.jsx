@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -14,6 +14,8 @@ import {
   Settings,
   X,
   ExternalLink,
+  Truck,
+  FileText,
 } from 'lucide-react';
 
 const navItems = [
@@ -22,6 +24,8 @@ const navItems = [
   { label: 'Categories', icon: Layers, path: '/admin/categories' },
   { label: 'Inventory', icon: Boxes, path: '/admin/inventory' },
   { label: 'Orders', icon: ShoppingBag, path: '/admin/orders' },
+  { label: 'Shipments', icon: Truck, path: '/admin/shipments' },
+  { label: 'Invoices', icon: FileText, path: '/admin/invoices' },
   { label: 'Customers', icon: Users, path: '/admin/customers' },
   { label: 'Coupons', icon: Ticket, path: '/admin/coupons' },
   { label: 'Reviews', icon: MessageSquare, path: '/admin/reviews' },

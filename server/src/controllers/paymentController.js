@@ -3,7 +3,11 @@ const { sendSuccess } = require('../utils/apiResponse');
 
 const createRazorpayOrder = async (req, res, next) => {
   try {
-    const paymentData = await paymentService.createRazorpayOrder(req.user._id, req.body.addressId);
+    const paymentData = await paymentService.createRazorpayOrder(
+      req.user._id,
+      req.body.addressId,
+      req.body.couponCode
+    );
     return sendSuccess(res, 201, 'Razorpay order created successfully', paymentData);
   } catch (error) {
     next(error);

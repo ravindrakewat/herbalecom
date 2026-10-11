@@ -27,12 +27,13 @@ router.get('/me', protect, getProfile);
 router.patch('/me', protect, validateProfileUpdate, updateProfile);
 router.patch('/me/password', protect, validateChangePassword, changePassword);
 
-// User Address CRUD Routes
-router.post('/me/addresses', protect, validateAddress, createAddress);
-router.get('/me/addresses', protect, getMyAddresses);
-router.get('/me/addresses/:id', protect, validateObjectId('id'), getAddressById);
-router.patch('/me/addresses/:id', protect, validateObjectId('id'), updateAddress);
-router.delete('/me/addresses/:id', protect, validateObjectId('id'), deleteAddress);
+// User Address CRUD Routes (supports both /me/addresses and /addresses)
+router.post(['/me/addresses', '/addresses'], protect, validateAddress, createAddress);
+router.get(['/me/addresses', '/addresses'], protect, getMyAddresses);
+router.get(['/me/addresses/:id', '/addresses/:id'], protect, validateObjectId('id'), getAddressById);
+router.patch(['/me/addresses/:id', '/addresses/:id'], protect, validateObjectId('id'), updateAddress);
+router.put(['/me/addresses/:id', '/addresses/:id'], protect, validateObjectId('id'), updateAddress);
+router.delete(['/me/addresses/:id', '/addresses/:id'], protect, validateObjectId('id'), deleteAddress);
 
 // Admin-only User Management
 router.get('/', protect, authorizeRoles('admin'), getUsers);

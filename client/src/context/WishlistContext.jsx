@@ -4,13 +4,30 @@ import { useAuth } from './AuthContext';
 
 const WishlistContext = createContext();
 
+// Helper to safely extract products array from any server response shape
+const extractProducts = (response) => {
+  if (!response) return [];
+  if (Array.isArray(response)) return response;
+  if (response.data) {
+    if (Array.isArray(response.data)) return response.data;
+    if (response.data.products && Array.isArray(response.data.products)) {
+      return response.data.products;
+    }
+  }
+  if (response.products && Array.isArray(response.products)) {
+    return response.products;
+  }
+  return [];
+};
+
 export const WishlistProvider = ({ children }) => {
   const { isAuthenticated, authStatus } = useAuth();
 
   const [guestWishlist, setGuestWishlist] = useState(() => {
     try {
       const saved = localStorage.getItem('herbal_guest_wishlist');
-      return saved ? JSON.parse(saved) : [];
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
       return [];
     }
@@ -35,7 +52,7 @@ export const WishlistProvider = ({ children }) => {
     try {
       setLoading(true);
       const res = await wishlistService.getWishlist();
-      setServerWishlist(res.data || []);
+      setServerWishlist(extractProducts(res));
     } catch (err) {
       console.error('Failed to fetch server wishlist', err);
     } finally {
@@ -51,9 +68,9 @@ export const WishlistProvider = ({ children }) => {
       const guestItems = savedGuest ? JSON.parse(savedGuest) : [];
 
       if (guestItems && guestItems.length > 0) {
-        const productIds = guestItems.map((item) => item._id || item.id);
+        const productIds = guestItems.map((item) => item?._id || item?.id || item).filter(Boolean);
         const res = await wishlistService.mergeWishlist(productIds);
-        setServerWishlist(res.data || []);
+        setServerWishlist(extractProducts(res));
         localStorage.removeItem('herbal_guest_wishlist');
         setGuestWishlist([]);
       } else {
@@ -73,32 +90,47 @@ export const WishlistProvider = ({ children }) => {
     }
   }, [authStatus, handleLoginWishlistMerge]);
 
-  const activeWishlist = isAuthenticated ? serverWishlist : guestWishlist;
+  const activeWishlist = Array.isArray(isAuthenticated ? serverWishlist : guestWishlist)
+    ? (isAuthenticated ? serverWishlist : guestWishlist)
+    : [];
 
-  const isInWishlist = (productId) => {
-    return activeWishlist.some((item) => (item._id || item.id || item) === productId);
-  };
+  const isInWishlist = useCallback((productId) => {
+    if (!productId || !Array.isArray(activeWishlist)) return false;
+    const targetId = String(productId);
+    return activeWishlist.some((item) => {
+      const id = item?._id || item?.id || (typeof item === 'string' ? item : null);
+      return id && String(id) === targetId;
+    });
+  }, [activeWishlist]);
 
   const toggleWishlist = async (product) => {
-    const productId = product._id || product.id;
+    if (!product) return false;
+    const productId = product._id || product.id || (typeof product === 'string' ? product : null);
+    if (!productId) return false;
+
+    const currentlyInWishlist = isInWishlist(productId);
 
     if (isAuthenticated) {
       try {
-        if (isInWishlist(productId)) {
+        if (currentlyInWishlist) {
           const res = await wishlistService.removeFromWishlist(productId);
-          setServerWishlist(res.data || []);
+          setServerWishlist(extractProducts(res));
           return false;
         } else {
           const res = await wishlistService.addToWishlist(productId);
-          setServerWishlist(res.data || []);
+          setServerWishlist(extractProducts(res));
           return true;
         }
       } catch (err) {
         console.error('Failed to toggle server wishlist', err);
+        return currentlyInWishlist;
       }
     } else {
-      if (isInWishlist(productId)) {
-        setGuestWishlist((prev) => prev.filter((item) => (item._id || item.id || item) !== productId));
+      if (currentlyInWishlist) {
+        setGuestWishlist((prev) => prev.filter((item) => {
+          const id = item?._id || item?.id || item;
+          return String(id) !== String(productId);
+        }));
         return false;
       } else {
         setGuestWishlist((prev) => [...prev, product]);
@@ -108,27 +140,49 @@ export const WishlistProvider = ({ children }) => {
   };
 
   const removeFromWishlist = async (productId) => {
+    if (!productId) return;
+    const targetId = String(productId);
+
     if (isAuthenticated) {
       try {
-        const res = await wishlistService.removeFromWishlist(productId);
-        setServerWishlist(res.data || []);
+        const res = await wishlistService.removeFromWishlist(targetId);
+        setServerWishlist(extractProducts(res));
       } catch (err) {
         console.error('Failed to remove from server wishlist', err);
       }
     } else {
-      setGuestWishlist((prev) => prev.filter((item) => (item._id || item.id || item) !== productId));
+      setGuestWishlist((prev) => prev.filter((item) => {
+        const id = item?._id || item?.id || item;
+        return String(id) !== targetId;
+      }));
+    }
+  };
+
+  const clearWishlist = async () => {
+    if (isAuthenticated) {
+      try {
+        const res = await wishlistService.clearWishlist();
+        setServerWishlist(extractProducts(res));
+      } catch (err) {
+        console.error('Failed to clear server wishlist', err);
+      }
+    } else {
+      setGuestWishlist([]);
+      localStorage.removeItem('herbal_guest_wishlist');
     }
   };
 
   return (
     <WishlistContext.Provider
       value={{
+        wishlist: activeWishlist,
         wishlistItems: activeWishlist,
         wishlistCount: activeWishlist.length,
         loading,
         isInWishlist,
         toggleWishlist,
         removeFromWishlist,
+        clearWishlist,
       }}
     >
       {children}

@@ -11,10 +11,11 @@ const getProducts = async (req, res, next) => {
   }
 };
 
-// Public product details by slug
+// Public product details by slug or id
 const getProductBySlug = async (req, res, next) => {
   try {
-    const product = await productService.getPublicProductBySlug(req.params.slug);
+    const identifier = req.params.slug || req.params.id || req.params.productId;
+    const product = await productService.getPublicProductBySlug(identifier);
     return sendSuccess(res, 200, 'Product details fetched successfully', product);
   } catch (error) {
     next(error);

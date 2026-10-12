@@ -29,6 +29,14 @@ const ALLOWED_PRODUCT_FIELDS = [
   'seoKeywords',
   'isActive',
   'isFeatured',
+  'fssaiNumber',
+  'countryOfOrigin',
+  'showBotanicalShowcase',
+  'botanicalSubtitle',
+  'botanicalTitle',
+  'botanicalAnimatedImage',
+  'showPromoSlider',
+  'promoSliderImages',
 ];
 
 const validateProductCreate = (req, res, next) => {

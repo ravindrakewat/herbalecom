@@ -1,28 +1,30 @@
-﻿import React from 'react';
+import React from 'react';
 
-const AdminStatCard = ({ title, value, icon: Icon, color = '#1b4332', bg = '#f4f9f6', subtitle }) => {
+const AdminStatCard = ({ title, value, icon: Icon, color = '#153222', bg = '#e8f5e9', subtitle }) => {
   return (
     <div
       style={{
         backgroundColor: '#ffffff',
-        borderRadius: '14px',
-        padding: '1.25rem 1.5rem',
-        border: '1px solid #e2e8e4',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+        borderRadius: '16px',
+        padding: '1.35rem 1.6rem',
+        border: '1px solid #eae5dc',
+        boxShadow: '0 2px 10px rgba(21, 50, 34, 0.04)',
         display: 'flex',
         alignItems: 'center',
-        justify: 'space-between',
+        justifyContent: 'space-between',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
       }}
+      className="admin-card"
     >
       <div>
-        <span style={{ fontSize: '0.85rem', color: '#5c6e63', fontWeight: 600, display: 'block' }}>
+        <span style={{ fontSize: '0.84rem', color: '#647369', fontWeight: 600, display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
           {title}
         </span>
-        <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1b4332', marginTop: '0.2rem' }}>
+        <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#153222', marginTop: '0.25rem', fontFamily: 'var(--font-heading)' }}>
           {value}
         </div>
         {subtitle && (
-          <span style={{ fontSize: '0.75rem', color: '#8e9e94', marginTop: '0.2rem', display: 'block' }}>
+          <span style={{ fontSize: '0.78rem', color: '#8e9e94', marginTop: '0.25rem', display: 'block' }}>
             {subtitle}
           </span>
         )}
@@ -31,17 +33,19 @@ const AdminStatCard = ({ title, value, icon: Icon, color = '#1b4332', bg = '#f4f
       {Icon && (
         <div
           style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '12px',
+            width: '52px',
+            height: '52px',
+            borderRadius: '14px',
             backgroundColor: bg,
+            border: '1px solid rgba(21, 50, 34, 0.08)',
             display: 'flex',
             alignItems: 'center',
-            justify: 'center',
+            justifyContent: 'center',
             color,
+            flexShrink: 0,
           }}
         >
-          <Icon size={24} />
+          <Icon size={24} strokeWidth={2} />
         </div>
       )}
     </div>

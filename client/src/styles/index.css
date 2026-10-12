@@ -344,3 +344,145 @@ button {
     );
   }
 }
+
+/* ==========================================================================
+   AyuVeda Admin Workspace UI Theme & Design System
+   ========================================================================== */
+.admin-layout-root {
+  background-color: #fbf9f5 !important;
+  color: var(--text-main);
+  min-height: 100vh;
+}
+
+.admin-sidebar {
+  background: linear-gradient(180deg, #153222 0%, #0d2116 100%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-sidebar-nav-item {
+  color: #a7c1b2 !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-sidebar-nav-item:hover {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.admin-sidebar-nav-item.active {
+  color: #ffffff !important;
+  background-color: #244b36 !important;
+  box-shadow: inset 3px 0 0 #52b788;
+}
+
+.admin-header-bar {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #eae5dc !important;
+  box-shadow: 0 1px 4px rgba(21, 50, 34, 0.03);
+}
+
+.admin-card {
+  background-color: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #eae5dc;
+  box-shadow: 0 2px 10px rgba(21, 50, 34, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-card:hover {
+  box-shadow: 0 6px 18px rgba(21, 50, 34, 0.07);
+}
+
+.admin-btn-primary {
+  background-color: #153222 !important;
+  color: #ffffff !important;
+  border: none;
+  border-radius: 10px;
+  padding: 0.65rem 1.25rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.admin-btn-primary:hover {
+  background-color: #2d6a4f !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(21, 50, 34, 0.15);
+}
+
+.admin-btn-accent {
+  background-color: #dd5226 !important;
+  color: #ffffff !important;
+  border: none;
+  border-radius: 10px;
+  padding: 0.65rem 1.25rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.admin-btn-accent:hover {
+  background-color: #c5431b !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(221, 82, 38, 0.2);
+}
+
+.admin-input, .admin-select {
+  border: 1.5px solid #ded7cb !important;
+  border-radius: 10px !important;
+  background-color: #ffffff !important;
+  color: #153222 !important;
+  font-family: var(--font-body);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-input:focus, .admin-select:focus {
+  outline: none;
+  border-color: #2d6a4f !important;
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.12) !important;
+}
+
+.admin-table-container {
+  background-color: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #eae5dc;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(21, 50, 34, 0.03);
+}
+
+.admin-table th {
+  background-color: #faf7f2 !important;
+  color: #153222 !important;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #eae5dc;
+}
+
+.admin-table tr {
+  transition: background-color 0.15s ease;
+}
+
+.admin-table tbody tr:hover {
+  background-color: #fbf9f5 !important;
+}
+
+.admin-page-title {
+  font-family: var(--font-heading) !important;
+  font-size: 1.85rem !important;
+  color: #153222 !important;
+  font-weight: 700;
+  margin: 0;
+}
+
+.admin-page-subtitle {
+  color: #65776d;
+  font-size: 0.92rem;
+  margin-top: 0.25rem;
+}
+

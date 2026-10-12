@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import adminService from '../../services/adminService';
 import productService from '../../services/productService';
@@ -62,15 +62,15 @@ const AdminProducts = () => {
     {
       header: 'Product',
       render: (row) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           <img
-            src={row.thumbnail || row.images?.[0]?.url || 'https://via.placeholder.com/40'}
+            src={row.thumbnail || row.images?.[0]?.url || 'https://via.placeholder.com/44'}
             alt={row.name}
-            style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e2e8e4' }}
+            style={{ width: '44px', height: '44px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #eae5dc' }}
           />
           <div>
-            <strong style={{ color: '#1b4332', fontSize: '0.9rem', display: 'block' }}>{row.name}</strong>
-            <span style={{ fontSize: '0.75rem', color: '#8e9e94' }}>{row.slug}</span>
+            <strong style={{ color: '#153222', fontSize: '0.92rem', display: 'block' }}>{row.name}</strong>
+            <span style={{ fontSize: '0.76rem', color: '#8e9e94' }}>{row.slug}</span>
           </div>
         </div>
       ),
@@ -83,7 +83,7 @@ const AdminProducts = () => {
     {
       header: 'Selling Price',
       render: (row) => (
-        <span style={{ fontWeight: 700, color: '#1b4332' }}>
+        <span style={{ fontWeight: 700, color: '#153222' }}>
           {siteConfig.currency}{(row.sellingPrice || 0).toLocaleString('en-IN')}
         </span>
       ),
@@ -91,7 +91,7 @@ const AdminProducts = () => {
     {
       header: 'Stock',
       render: (row) => (
-        <span style={{ fontWeight: 700, color: row.stockQuantity <= 5 ? '#e53e3e' : '#1b4332' }}>
+        <span style={{ fontWeight: 700, color: row.stockQuantity <= 5 ? '#dd5226' : '#153222' }}>
           {row.stockQuantity !== undefined ? row.stockQuantity : 'N/A'}
         </span>
       ),
@@ -103,29 +103,57 @@ const AdminProducts = () => {
     {
       header: 'Actions',
       render: (row) => (
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
           <Link
-            to={/product/}
+            to={`/products/${row.slug}`}
             target="_blank"
-            title="Preview on Live Store"
-            style={{ padding: '0.35rem', borderRadius: '6px', border: '1px solid #e2e8e4', color: '#5c6e63' }}
+            title="View Live Storefront Page"
+            style={{
+              padding: '0.42rem',
+              borderRadius: '8px',
+              border: '1px solid #eae5dc',
+              color: '#153222',
+              backgroundColor: '#faf7f2',
+              display: 'flex',
+              alignItems: 'center',
+              transition: 'all 0.15s ease',
+            }}
           >
-            <Eye size={16} />
+            <Eye size={15} />
           </Link>
           <Link
             to={`/admin/products/${row._id}/edit`}
-            title="Edit Product"
-            style={{ padding: '0.35rem', borderRadius: '6px', border: '1px solid #1b4332', color: '#1b4332' }}
+            title="Edit Product Details"
+            style={{
+              padding: '0.42rem',
+              borderRadius: '8px',
+              border: '1px solid #c8e6c9',
+              color: '#2d6a4f',
+              backgroundColor: '#e8f5e9',
+              display: 'flex',
+              alignItems: 'center',
+              transition: 'all 0.15s ease',
+            }}
           >
-            <Edit size={16} />
+            <Edit size={15} />
           </Link>
           {row.isActive && (
             <button
               onClick={() => setDeactivateId(row._id)}
               title="Deactivate Product"
-              style={{ padding: '0.35rem', borderRadius: '6px', border: '1px solid #e63946', color: '#e63946', background: 'none', cursor: 'pointer' }}
+              style={{
+                padding: '0.42rem',
+                borderRadius: '8px',
+                border: '1px solid #fecaca',
+                color: '#dd5226',
+                backgroundColor: '#fff5f2',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                transition: 'all 0.15s ease',
+              }}
             >
-              <Trash2 size={16} />
+              <Trash2 size={15} />
             </button>
           )}
         </div>
@@ -135,29 +163,89 @@ const AdminProducts = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.8rem', color: '#1b4332', margin: 0 }}>Product Catalog Management</h1>
-          <p style={{ color: '#5c6e63', margin: '0.25rem 0 0', fontSize: '0.9rem' }}>
-            Manage herbal products, pricing, and inventory specifications
+          <h1 style={{ fontSize: '2.1rem', color: '#153222', margin: 0, fontFamily: 'var(--font-heading)', fontWeight: 700 }}>
+            Product Catalog Management
+          </h1>
+          <p style={{ color: '#65776d', margin: '0.35rem 0 0', fontSize: '0.95rem' }}>
+            Manage herbal products, pricing, ingredients, and inventory specifications
           </p>
         </div>
-        <Link to="/admin/products/new" style={{ backgroundColor: '#1b4332', color: '#ffffff', padding: '0.65rem 1.25rem', borderRadius: '10px', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+        <Link
+          to="/admin/products/new"
+          style={{
+            backgroundColor: '#153222',
+            color: '#ffffff',
+            padding: '0.7rem 1.35rem',
+            borderRadius: '12px',
+            textDecoration: 'none',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            fontSize: '0.92rem',
+            boxShadow: '0 4px 14px rgba(21, 50, 34, 0.15)',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#2d6a4f')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#153222')}
+        >
           <Plus size={18} /> Add New Product
         </Link>
       </div>
 
       {/* Filter & Search Bar */}
-      <div style={{ backgroundColor: '#fff', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8e4', marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-        <form onSubmit={handleSearchSubmit} style={{ flex: 1, display: 'flex', gap: '0.5rem', minWidth: '260px' }}>
+      <div
+        style={{
+          backgroundColor: '#ffffff',
+          padding: '1.25rem',
+          borderRadius: '16px',
+          border: '1px solid #eae5dc',
+          boxShadow: '0 2px 10px rgba(21, 50, 34, 0.03)',
+          marginBottom: '1.75rem',
+          display: 'flex',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+        }}
+        className="admin-card"
+      >
+        <form onSubmit={handleSearchSubmit} style={{ flex: 1, display: 'flex', gap: '0.65rem', minWidth: '280px' }}>
           <input
             type="text"
-            placeholder="Search by name, SKU, or slug..."
+            placeholder="Search by product name, SKU, or slug..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ flex: 1, padding: '0.5rem 0.85rem', borderRadius: '8px', border: '1px solid #c8d6ce', fontSize: '0.9rem' }}
+            style={{
+              flex: 1,
+              padding: '0.6rem 1rem',
+              borderRadius: '10px',
+              border: '1.5px solid #ded7cb',
+              fontSize: '0.92rem',
+              outline: 'none',
+              backgroundColor: '#fff',
+            }}
           />
-          <button type="submit" style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: '#1b4332', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 600 }}>
+          <button
+            type="submit"
+            style={{
+              padding: '0.6rem 1.25rem',
+              borderRadius: '10px',
+              border: 'none',
+              backgroundColor: '#153222',
+              color: '#ffffff',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              transition: 'background-color 0.2s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#2d6a4f')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#153222')}
+          >
             <Search size={16} /> Search
           </button>
         </form>
@@ -165,7 +253,16 @@ const AdminProducts = () => {
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          style={{ padding: '0.5rem 0.85rem', borderRadius: '8px', border: '1px solid #c8d6ce', fontSize: '0.9rem', backgroundColor: '#fff' }}
+          style={{
+            padding: '0.6rem 1rem',
+            borderRadius: '10px',
+            border: '1.5px solid #ded7cb',
+            fontSize: '0.92rem',
+            backgroundColor: '#fff',
+            outline: 'none',
+            color: '#153222',
+            fontWeight: 500,
+          }}
         >
           <option value="">All Status</option>
           <option value="active">Active Only</option>

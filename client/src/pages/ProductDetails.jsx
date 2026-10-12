@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import productService from '../services/productService';
 import reviewService from '../services/reviewService';
 import { useCart } from '../context/CartContext';
@@ -7,6 +7,10 @@ import { useWishlist } from '../context/WishlistContext';
 import { useAuth } from '../context/AuthContext';
 import Breadcrumbs from '../components/layout/Breadcrumbs';
 import ProductCarousel from '../components/product/ProductCarousel';
+import PaymentTrustStrip from '../components/common/PaymentTrustStrip';
+import ComplianceBadges from '../components/common/ComplianceBadges';
+import BotanicalAnatomyShowcase from '../components/product/BotanicalAnatomyShowcase';
+import ProductPromoSlider from '../components/product/ProductPromoSlider';
 import { siteConfig } from '../config/siteConfig';
 import { getProductImage } from '../utils/imageUtils';
 import {
@@ -32,6 +36,7 @@ import {
   Award,
   Layers,
   ArrowRight,
+  Zap,
 } from 'lucide-react';
 
 const ProductDetails = () => {
@@ -39,8 +44,15 @@ const ProductDetails = () => {
   const identifier = slug || id;
 
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { addToCart, loading: cartLoading } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
+
+  const handleBuyNow = async () => {
+    if (isOutOfStock) return;
+    await addToCart(product, quantity);
+    navigate('/checkout');
+  };
 
   // Primary product state
   const [product, setProduct] = useState(null);
@@ -951,20 +963,59 @@ const ProductDetails = () => {
                 disabled={isOutOfStock || cartLoading}
                 style={{
                   flex: 1,
-                  minWidth: '220px',
-                  backgroundColor: isOutOfStock ? '#d0c8bd' : '#dd5226',
-                  color: '#ffffff',
-                  border: 'none',
+                  minWidth: '150px',
+                  backgroundColor: '#ffffff',
+                  color: isOutOfStock ? '#a8b3aa' : '#153222',
+                  border: isOutOfStock ? '1.5px solid #dcd5ca' : '2px solid #153222',
                   borderRadius: '999px',
-                  padding: '1rem 2rem',
-                  fontSize: '1.05rem',
+                  padding: '0.9rem 1.25rem',
+                  fontSize: '0.96rem',
                   fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '0.65rem',
+                  gap: '0.45rem',
                   cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                  boxShadow: isOutOfStock ? 'none' : '0 8px 24px rgba(221, 82, 38, 0.28)',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isOutOfStock) {
+                    e.currentTarget.style.backgroundColor = '#153222';
+                    e.currentTarget.style.color = '#ffffff';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isOutOfStock) {
+                    e.currentTarget.style.backgroundColor = '#ffffff';
+                    e.currentTarget.style.color = '#153222';
+                  }
+                }}
+              >
+                <ShoppingBag size={18} />
+                {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+              </button>
+
+              {/* Buy Now (Direct Fast Checkout) */}
+              <button
+                type="button"
+                onClick={handleBuyNow}
+                disabled={isOutOfStock || cartLoading}
+                style={{
+                  flex: 1,
+                  minWidth: '150px',
+                  backgroundColor: isOutOfStock ? '#d0c8bd' : '#dd5226',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '999px',
+                  padding: '0.9rem 1.25rem',
+                  fontSize: '0.96rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.45rem',
+                  cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                  boxShadow: isOutOfStock ? 'none' : '0 6px 20px rgba(221, 82, 38, 0.26)',
                   transition: 'background-color 0.2s ease, transform 0.15s ease',
                 }}
                 onMouseEnter={(e) => {
@@ -974,10 +1025,20 @@ const ProductDetails = () => {
                   if (!isOutOfStock) e.currentTarget.style.backgroundColor = '#dd5226';
                 }}
               >
-                <ShoppingBag size={20} />
-                {isOutOfStock ? 'Currently Out of Stock' : 'Add to Cart'}
+                <Zap size={18} />
+                Buy Now
               </button>
             </div>
+
+            {/* ── FSSAI & COUNTRY OF ORIGIN COMPLIANCE BADGES ── */}
+            <ComplianceBadges
+              fssaiNumber={product?.fssaiNumber || '12723055000162'}
+              countryOfOrigin={product?.countryOfOrigin || 'INDIA'}
+              style={{ marginTop: '1.15rem' }}
+            />
+
+            {/* ── ACCEPTED PAYMENTS TRUST BADGES (Amex, Mastercard, Visa, BHIM UPI, RuPay) ── */}
+            <PaymentTrustStrip style={{ marginTop: '0.85rem' }} />
 
             {/* Store Guarantees / Trust Badges */}
             <div
@@ -986,8 +1047,8 @@ const ProductDetails = () => {
                 gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
                 gap: '1rem',
                 borderTop: '1px solid #ebe5dc',
-                paddingTop: '1.5rem',
-                marginTop: '0.75rem',
+                paddingTop: '1.25rem',
+                marginTop: '1.25rem',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
@@ -1076,6 +1137,25 @@ const ProductDetails = () => {
             </div>
           </div>
         </div>
+
+        {/* ── BOTANICAL ANATOMY & NOURISHMENT SHOWCASE (ANIMATED MOVING CENTER IMAGE) ── */}
+        {product?.showBotanicalShowcase !== false && (
+          <BotanicalAnatomyShowcase
+            product={product}
+            productName={product?.botanicalTitle || undefined}
+            imageSrc={product?.botanicalAnimatedImage || undefined}
+            subtitle={product?.botanicalSubtitle || undefined}
+            style={{ marginBottom: '4.5rem' }}
+          />
+        )}
+
+        {/* ── FEATURE PROMO HERO BANNER SLIDER (CAROUSEL) ── */}
+        {product?.showPromoSlider !== false && (
+          <ProductPromoSlider
+            product={product}
+            style={{ marginBottom: '4.5rem' }}
+          />
+        )}
 
         {/* ── EXPANDABLE PRODUCT INFORMATION SECTIONS (ACCORDIONS) ─────────── */}
         <div

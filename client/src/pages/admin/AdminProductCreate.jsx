@@ -33,6 +33,14 @@ const AdminProductCreate = () => {
     seoDescription: '',
     isActive: true,
     isFeatured: false,
+    fssaiNumber: '12723055000162',
+    countryOfOrigin: 'INDIA',
+    showBotanicalShowcase: true,
+    botanicalSubtitle: 'ROOT TO FRUIT NOURISHMENT WITH',
+    botanicalTitle: '',
+    botanicalAnimatedImage: '',
+    showPromoSlider: true,
+    promoSliderImages: '',
   });
 
   useEffect(() => {
@@ -102,6 +110,25 @@ const AdminProductCreate = () => {
       if (compressedDataUrl) {
         setForm((prev) => ({ ...prev, thumbnail: compressedDataUrl }));
       }
+    } else if (targetField === 'botanical') {
+      const compressedDataUrl = await compressImageFile(files[0]);
+      if (compressedDataUrl) {
+        setForm((prev) => ({ ...prev, botanicalAnimatedImage: compressedDataUrl }));
+      }
+    } else if (targetField === 'promoSlider') {
+      const compressedUrls = await Promise.all(
+        Array.from(files).map((f) => compressImageFile(f, 1600, 0.88))
+      );
+      setForm((prev) => {
+        const currentList = prev.promoSliderImages
+          ? prev.promoSliderImages.split('\n').filter(Boolean)
+          : [];
+        compressedUrls.filter(Boolean).forEach((url) => currentList.push(url));
+        return {
+          ...prev,
+          promoSliderImages: currentList.join('\n'),
+        };
+      });
     } else if (targetField === 'gallery') {
       const compressedUrls = await Promise.all(
         Array.from(files).map((f) => compressImageFile(f))
@@ -131,7 +158,20 @@ const AdminProductCreate = () => {
     });
   };
 
+  // Remove a specific slider banner image by index
+  const handleRemoveSliderImage = (indexToRemove) => {
+    setForm((prev) => {
+      const list = prev.promoSliderImages.split('\n').filter(Boolean);
+      const updated = list.filter((_, idx) => idx !== indexToRemove);
+      return {
+        ...prev,
+        promoSliderImages: updated.join('\n'),
+      };
+    });
+  };
+
   const galleryList = form.imageUrls ? form.imageUrls.split('\n').filter(Boolean) : [];
+  const sliderImagesList = form.promoSliderImages ? form.promoSliderImages.split('\n').filter(Boolean) : [];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -175,6 +215,16 @@ const AdminProductCreate = () => {
         seoDescription: form.seoDescription,
         isActive: form.isActive,
         isFeatured: form.isFeatured,
+        fssaiNumber: form.fssaiNumber || '12723055000162',
+        countryOfOrigin: form.countryOfOrigin || 'INDIA',
+        showBotanicalShowcase: form.showBotanicalShowcase,
+        botanicalSubtitle: form.botanicalSubtitle || 'ROOT TO FRUIT NOURISHMENT WITH',
+        botanicalTitle: form.botanicalTitle || '',
+        botanicalAnimatedImage: form.botanicalAnimatedImage || '',
+        showPromoSlider: form.showPromoSlider,
+        promoSliderImages: form.promoSliderImages
+          ? form.promoSliderImages.split('\n').map((s) => s.trim()).filter(Boolean)
+          : [],
       };
 
       await productService.createProduct(payload);
@@ -413,7 +463,210 @@ const AdminProductCreate = () => {
           </div>
         </div>
 
-        {/* Section 5: Status Controls */}
+        {/* Section 5: Botanical Anatomy & Animated Showcase (Root-to-Fruit Section) */}
+        <div style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: '14px', border: '1px solid #e2e8e4' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Leaf size={20} color="#dd5226" />
+              <h3 style={{ margin: 0, color: '#1b4332', fontSize: '1.1rem' }}>
+                5. Botanical Anatomy & Animated Showcase (Root-to-Fruit)
+              </h3>
+            </div>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 600, color: '#1b4332', fontSize: '0.88rem' }}>
+              <input
+                type="checkbox"
+                name="showBotanicalShowcase"
+                checked={form.showBotanicalShowcase}
+                onChange={handleChange}
+                style={{ accentColor: '#1b4332' }}
+              />
+              Enable Animated Showcase Section
+            </label>
+          </div>
+
+          <p style={{ fontSize: '0.82rem', color: '#647369', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+            This section renders the interactive showcase below the product price & buy buttons on the storefront. The center image continuously floats, rotates, and tilts with mouse parallax!
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>
+                Showcase Top Subtitle
+              </label>
+              <input
+                type="text"
+                name="botanicalSubtitle"
+                value={form.botanicalSubtitle}
+                onChange={handleChange}
+                placeholder="ROOT TO FRUIT NOURISHMENT WITH"
+                style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>
+                Showcase Main Title (Plant Name)
+              </label>
+              <input
+                type="text"
+                name="botanicalTitle"
+                value={form.botanicalTitle}
+                onChange={handleChange}
+                placeholder="SEA BUCKTHORN (Leave blank to use product name)"
+                style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>
+              Animated Center Image (Botanical Branch / Fruit Cutout)
+            </label>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                name="botanicalAnimatedImage"
+                value={form.botanicalAnimatedImage}
+                onChange={handleChange}
+                placeholder="/images/sea-buckthorn-branch.jpg (or leave blank to use main product image)"
+                style={{ flex: 1, minWidth: '240px', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce', fontSize: '0.85rem' }}
+              />
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.65rem 1rem', backgroundColor: '#1b4332', color: '#fff', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                <Upload size={16} /> Upload Center Image
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => handleFileUpload(e, 'botanical')}
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 6: Feature Promo Banner Slider (Hero Banner Carousel) */}
+        <div style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: '14px', border: '1px solid #e2e8e4' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Image size={20} color="#1b4332" />
+              <h3 style={{ margin: 0, color: '#1b4332', fontSize: '1.1rem' }}>
+                6. Promotional Hero Banner Slider (Feature Carousel)
+              </h3>
+            </div>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 600, color: '#1b4332', fontSize: '0.88rem' }}>
+              <input
+                type="checkbox"
+                name="showPromoSlider"
+                checked={form.showPromoSlider}
+                onChange={handleChange}
+                style={{ accentColor: '#1b4332' }}
+              />
+              Show Slider on Product Page
+            </label>
+          </div>
+
+          <p style={{ fontSize: '0.82rem', color: '#647369', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+            Displays wide cinematic feature banners with &lt; and &gt; navigation arrows (like &quot;Straight from Ladakh&quot;, &quot;Rarest Omega 7 Source&quot;). If left empty, default verified banners are automatically used for Sea Buckthorn.
+          </p>
+
+          {/* Current Slider Images Thumbnails */}
+          {sliderImagesList.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.85rem', marginBottom: '1rem' }}>
+              {sliderImagesList.map((url, idx) => (
+                <div key={idx} style={{ position: 'relative', width: '160px', height: '90px', borderRadius: '10px', border: '1px solid #c8d6ce', overflow: 'hidden', backgroundColor: '#f9f9f9' }}>
+                  <img
+                    src={url}
+                    alt={`Slider banner ${idx + 1}`}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => { e.currentTarget.src = '/images/sea-buckthorn-banner-1.jpg'; }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveSliderImage(idx)}
+                    title="Remove this banner"
+                    style={{ position: 'absolute', top: '4px', right: '4px', backgroundColor: 'rgba(0,0,0,0.65)', color: '#fff', border: 'none', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                  <div style={{ position: 'absolute', bottom: '2px', left: '4px', backgroundColor: 'rgba(27,67,50,0.85)', color: '#fff', fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px' }}>
+                    Slide #{idx + 1}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Upload or Add Banner URLs */}
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', backgroundColor: '#1b4332', color: '#fff', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
+              <Upload size={16} /> Upload Banner Images
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                style={{ display: 'none' }}
+                onChange={(e) => handleFileUpload(e, 'promoSlider')}
+              />
+            </label>
+            <span style={{ fontSize: '0.8rem', color: '#8e9e94' }}>or enter banner image URLs (1 per line):</span>
+          </div>
+
+          <textarea
+            name="promoSliderImages"
+            rows={3}
+            value={form.promoSliderImages}
+            onChange={handleChange}
+            placeholder="/images/sea-buckthorn-banner-1.jpg&#10;/images/sea-buckthorn-banner-2.jpg"
+            style={{ width: '100%', marginTop: '0.75rem', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce', fontSize: '0.88rem' }}
+          />
+        </div>
+
+        {/* Section 7: Compliance & Trust Credentials (FSSAI & Origin) */}
+        <div style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: '14px', border: '1px solid #e2e8e4' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+            <span style={{ fontSize: '1.1rem' }}>🛡️</span>
+            <h3 style={{ margin: 0, color: '#1b4332', fontSize: '1.1rem' }}>
+              7. Compliance & Trust Badges (FSSAI License & Country of Origin)
+            </h3>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>
+                FSSAI License Number
+              </label>
+              <input
+                type="text"
+                name="fssaiNumber"
+                value={form.fssaiNumber}
+                onChange={handleChange}
+                placeholder="12723055000162"
+                style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }}
+              />
+              <span style={{ fontSize: '0.74rem', color: '#647369', marginTop: '0.25rem', display: 'block' }}>
+                Displayed directly on the FSSAI badge under the Add to Cart / Buy Now buttons.
+              </span>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#1b4332', marginBottom: '0.3rem' }}>
+                Country of Origin
+              </label>
+              <input
+                type="text"
+                name="countryOfOrigin"
+                value={form.countryOfOrigin}
+                onChange={handleChange}
+                placeholder="INDIA"
+                style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #c8d6ce' }}
+              />
+              <span style={{ fontSize: '0.74rem', color: '#647369', marginTop: '0.25rem', display: 'block' }}>
+                Displayed on the Country of Origin badge alongside the Indian Tiranga flag.
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 7: Status Controls */}
         <div style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: '14px', border: '1px solid #e2e8e4', display: 'flex', gap: '2rem' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 600, color: '#1b4332' }}>
             <input type="checkbox" name="isActive" checked={form.isActive} onChange={handleChange} style={{ accentColor: '#1b4332' }} />

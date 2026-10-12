@@ -47,6 +47,20 @@ const productSchema = new mongoose.Schema(
     disclaimer: { type: String, default: 'Consult a healthcare practitioner before use if pregnant or taking medication.' },
     allergenInformation: { type: String, default: '' },
 
+    // Compliance & Origin Certifications
+    fssaiNumber: { type: String, default: '12723055000162', trim: true },
+    countryOfOrigin: { type: String, default: 'INDIA', trim: true },
+
+    // Botanical Anatomy & Animated Showcase
+    showBotanicalShowcase: { type: Boolean, default: true },
+    botanicalSubtitle: { type: String, default: 'ROOT TO FRUIT NOURISHMENT WITH', trim: true },
+    botanicalTitle: { type: String, default: '', trim: true },
+    botanicalAnimatedImage: { type: String, default: '', trim: true },
+
+    // Promotional Hero Banner Slider on Product Details Page
+    showPromoSlider: { type: Boolean, default: true },
+    promoSliderImages: [{ type: String }],
+
     // SEO
     seoTitle: { type: String, default: '' },
     seoDescription: { type: String, default: '' },

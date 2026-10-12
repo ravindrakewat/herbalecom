@@ -1,6 +1,6 @@
-﻿import React from 'react';
+import React from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Menu, LogOut, Shield } from 'lucide-react';
+import { Menu, LogOut, ShieldCheck, Leaf } from 'lucide-react';
 
 const AdminHeader = ({ setMobileOpen }) => {
   const { user, logout } = useAuth();
@@ -8,17 +8,19 @@ const AdminHeader = ({ setMobileOpen }) => {
   return (
     <header
       style={{
-        height: '64px',
+        height: '68px',
         backgroundColor: '#ffffff',
-        borderBottom: '1px solid #e2e8e4',
+        borderBottom: '1px solid #eae5dc',
         display: 'flex',
         alignItems: 'center',
-        justify: 'space-between',
-        padding: '0 1.5rem',
+        justifyContent: 'space-between',
+        padding: '0 2rem',
         position: 'sticky',
         top: 0,
         zIndex: 30,
+        boxShadow: '0 1px 6px rgba(21, 50, 34, 0.03)',
       }}
+      className="admin-header-bar"
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <button
@@ -26,23 +28,40 @@ const AdminHeader = ({ setMobileOpen }) => {
           style={{
             background: 'none',
             border: 'none',
-            color: '#1b4332',
+            color: '#153222',
             cursor: 'pointer',
-            padding: '0.25rem',
+            padding: '0.35rem',
+            display: 'flex',
+            alignItems: 'center',
+            borderRadius: '8px',
           }}
           className="admin-mobile-toggle"
+          aria-label="Toggle Navigation Menu"
         >
           <Menu size={22} />
         </button>
-        <span style={{ fontSize: '0.9rem', color: '#5c6e63', fontWeight: 600 }}>
-          Admin Workspace
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Leaf size={16} color="#52b788" />
+          <span style={{ fontSize: '0.92rem', color: '#153222', fontWeight: 700, letterSpacing: '0.2px' }}>
+            AyuVeda Operations & Management
+          </span>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#f4f9f6', padding: '0.4rem 0.85rem', borderRadius: '99px' }}>
-          <Shield size={16} color="#52b788" />
-          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1b4332' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            backgroundColor: '#f4f9f6',
+            border: '1px solid #ded7cb',
+            padding: '0.42rem 0.95rem',
+            borderRadius: '99px',
+          }}
+        >
+          <ShieldCheck size={16} color="#2d6a4f" />
+          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#153222' }}>
             {user ? (`${user.firstName || ''} ${user.lastName || ''}`).trim() || user.email : 'Administrator'}
           </span>
         </div>
@@ -51,17 +70,26 @@ const AdminHeader = ({ setMobileOpen }) => {
           onClick={logout}
           title="Sign Out"
           style={{
-            background: 'none',
-            border: '1px solid #e2e8e4',
-            borderRadius: '8px',
-            padding: '0.4rem 0.75rem',
+            backgroundColor: '#fff',
+            border: '1px solid #fbdcd3',
+            borderRadius: '10px',
+            padding: '0.45rem 0.9rem',
             cursor: 'pointer',
-            color: '#e63946',
+            color: '#dd5226',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.3rem',
+            gap: '0.4rem',
             fontSize: '0.85rem',
             fontWeight: 600,
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#fff5f2';
+            e.currentTarget.style.borderColor = '#dd5226';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#fff';
+            e.currentTarget.style.borderColor = '#fbdcd3';
           }}
         >
           <LogOut size={16} /> Logout

@@ -30,6 +30,7 @@ app.use(helmetMiddleware);
 app.use(compression()); // Gzip/Brotli payload compression for fast mobile loading
 app.use('/api', apiLimiter);
 
+
 // Global Middlewares
 app.use(
   express.json({
@@ -48,6 +49,10 @@ const buildAllowedOrigins = () => {
     process.env.CLIENT_URL || 'http://localhost:5173',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
+    'https://anchara.com',
+    'https://www.anchara.com',
+    'http://anchara.com',
+    'http://www.anchara.com',
   ];
   // Support comma-separated additional origins: EXTRA_CLIENT_URLS=https://a.com,https://b.com
   const extras = process.env.EXTRA_CLIENT_URLS
@@ -59,7 +64,7 @@ const buildAllowedOrigins = () => {
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (e.g., curl, Postman, same-server)
+      // Allow requests with no origin (e.g., curl, Postman, same-server, uptime monitors)
       if (!origin) return callback(null, true);
       const allowedOrigins = buildAllowedOrigins();
       if (allowedOrigins.includes(origin)) {
@@ -73,7 +78,24 @@ app.use(
 
 app.buildAllowedOrigins = buildAllowedOrigins;
 
-// Health check endpoint
+// Root & Health Check Endpoints
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Herbal E-Commerce API is running',
+    status: 'healthy',
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Herbal E-Commerce API is running',
+    status: 'healthy',
+  });
+});
+
+// Diagnostic detailed health check endpoint
 app.get('/api/health', (req, res) => {
   const dbStatusMap = {
     0: 'Disconnected',
@@ -86,7 +108,8 @@ app.get('/api/health', (req, res) => {
 
   res.status(200).json({
     success: true,
-    message: 'Herbal E-Commerce API is running smoothly',
+    message: 'Herbal E-Commerce API is running',
+    status: 'healthy',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
     uptime: Math.floor(process.uptime()),

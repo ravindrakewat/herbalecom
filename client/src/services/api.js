@@ -1,13 +1,30 @@
 import axios from 'axios';
 
+// Helper to resolve the correct API base URL
+export const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  // Production fallback: automatically connect to live Render API
+  if (import.meta.env.PROD) {
+    return 'https://api.anchara.com/api';
+  }
+  // Local development fallback
+  return 'http://localhost:5000/api';
+};
+
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: getApiBaseUrl(),
   withCredentials: true,
 });
 
 // Request interceptor: Attach JWT Access Token
 API.interceptors.request.use(
   (config) => {
+    // Ensure base URL is always synchronized
+    if (!config.baseURL) {
+      config.baseURL = getApiBaseUrl();
+    }
     const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -36,7 +53,7 @@ const refreshAccessToken = async () => {
   if (!refreshPromise) {
     refreshPromise = (async () => {
       try {
-        const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const baseURL = getApiBaseUrl();
         const refreshResponse = await axios.post(
           `${baseURL}/auth/refresh`,
           {},

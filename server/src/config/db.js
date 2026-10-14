@@ -26,13 +26,14 @@ const connectDB = async () => {
 
   try {
     console.log('[Database] Connecting to MongoDB...');
+    const dbName = process.env.MONGO_DB_NAME || 'herbal_ecommerce';
     const conn = await mongoose.connect(uri, {
+      dbName,
       serverSelectionTimeoutMS: 5000,
     });
     // Never log the host in a way that reveals credentials
     const safeHost = conn.connection.host ? conn.connection.host.split('.')[0] + '.***' : 'connected';
-    const dbName = conn.connection.name || 'default';
-    console.log(`[Database] MongoDB Connected: ${safeHost} / ${dbName}`);
+    console.log(`[Database] MongoDB Connected: ${safeHost} / ${conn.connection.name}`);
 
     if (!isProd) {
       await seedIfEmpty();
